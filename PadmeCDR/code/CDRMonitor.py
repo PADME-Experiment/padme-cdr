@@ -494,7 +494,7 @@ def start_monitor():
         mh.write("TITLE_Y Occupation(TB)\n")
         mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"ffff00\" , \"0000ff\" , \"00ff00\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"KLOE Tape\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("lnfdisk","USED"))
