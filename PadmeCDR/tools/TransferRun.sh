@@ -2,8 +2,8 @@
 
 usage() {
     echo "Usage: $0 -r run [-S src_site] [-D dst_site] [-L dst_dir] [-y year] [-j jobs] [-h]" 1>&2
-    echo "Available source sites: CNAF LNF LNF2"
-    echo "Available destination sites: CNAF LNF LNF2 LOCAL"
+    echo "Available source sites: CNAF CNAF2 LNF LNF2"
+    echo "Available destination sites: CNAF CNAF2 LNF LNF2 LOCAL"
     echo "Default: copy from CNAF to LOCAL" 1>&2
     exit 1
 }
@@ -34,6 +34,7 @@ export -f transfer
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage system
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+srm_cnaf2="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
 srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 
@@ -113,12 +114,14 @@ fi
 # Define full URI of source run directory
 if [[ $src_site = "CNAF" ]]; then
     src_run_uri="${srm_cnaf}/daq/${year}/rawdata/${run}"
+elif [[ $src_site = "CNAF2" ]]; then
+    src_run_uri="${srm_cnaf2}/daq/${year}/rawdata/${run}"
 elif [[ $src_site = "LNF" ]]; then
     src_run_uri="${srm_lnf}/daq/${year}/rawdata/${run}"
 elif [[ $src_site = "LNF2" ]]; then
     src_run_uri="${srm_lnf2}/daq/${year}/rawdata/${run}"
 else
-    echo "ERROR - Source site ${src_site} is unknown. Please use CNAF, LNF, or LNF2"
+    echo "ERROR - Source site ${src_site} is unknown. Please use CNAF, CNAF2, LNF, or LNF2"
     usage
 fi
 
@@ -126,6 +129,8 @@ fi
 space_token=""
 if [[ $dst_site = "CNAF" ]]; then
     dst_run_uri="${srm_cnaf}/daq/${year}/rawdata/${run}"
+elif [[ $dst_site = "CNAF2" ]]; then
+    dst_run_uri="${srm_cnaf2}/daq/${year}/rawdata/${run}"
 elif [[ $dst_site = "LNF" ]]; then
     dst_run_uri="${srm_lnf}/daq/${year}/rawdata/${run}"
 elif [[ $dst_site = "LNF2" ]]; then
@@ -134,7 +139,7 @@ elif [[ $dst_site = "LNF2" ]]; then
 elif [[ $dst_site = "LOCAL" ]]; then
     dst_run_uri="file://${dst_dir}/${run}"
 else
-    echo "ERROR - Destination site ${dst_site} is unknown. Please use CNAF, LNF, LNF2, or LOCAL"
+    echo "ERROR - Destination site ${dst_site} is unknown. Please use CNAF, CNAF2, LNF, LNF2, or LOCAL"
     usage
 fi
 
