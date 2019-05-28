@@ -47,6 +47,9 @@ SRM = {
     "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 }
 
+# Verbose level (no messages by default)
+VERBOSE = 0
+
 def print_help():
     print '%s -F file_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-c] [-v] [-h]'%SCRIPT_NAME
     print '  -F file_name    Name of file to transfer'
@@ -165,7 +168,7 @@ def get_size_kloe_tape(filepath):
 
 def get_checksum_srm(filepath,site):
     a32 = ""
-    cmd = "gfal-sum %s%s adler32"%(SRM[site],path);
+    cmd = "gfal-sum %s%s adler32"%(SRM[site],filepath);
     for line in run_command(cmd):
         try:
             (fdummy,a32) = line.rstrip().split()
@@ -641,6 +644,8 @@ def copy_file_local_local(filename,src_dir,dst_dir):
 
 def main(argv):
 
+    global VERBOSE
+
     filename = ""
     src_site = "CNAF"
     src_string = ""
@@ -648,7 +653,6 @@ def main(argv):
     dst_site = "LNF"
     dst_string = ""
     dst_dir = ""
-    verbose = 0
 
     try:
         opts,args = getopt.getopt(argv,"F:S:D:s:d:vh")
@@ -674,7 +678,7 @@ def main(argv):
         elif opt == '-d':
             dst_dir = arg
         elif opt == '-v':
-            verbose += 1
+            VERBOSE += 1
 
     if (not filename):
         end_error("ERROR - No filename specified")
@@ -726,7 +730,7 @@ def main(argv):
     dst_string = dst_site
     if (dst_site == "DAQ" or dst_site == "LOCAL"): dst_string += "(%s)"%dst_dir
 
-    if verbose:
+    if VERBOSE:
         print
         print "=== TransferFile %s from %s to %s ==="%(filename,src_string,dst_string)
 
@@ -745,8 +749,7 @@ def main(argv):
         print "ERROR - file %s cannot be parsed to a valid PADME file name at destination site %s"%(filename,dst_site)
         sys.exit(1)
     if not dst_status == "missing":
-        if verbose:
-            print "- File %s already exists at destination site %s"%(filename,dst_site)
+        if VERBOSE: print "- File %s already exists at destination site %s"%(filename,dst_site)
         if (src_file_size != dst_file_size):
             print "WARNING - file %s exists at destination site %s but has wrong size - S: %s - D: %s"%(filename,dst_string,src_file_size,dst_file_size)
         elif (src_file_chksum and dst_file_chksum and (src_file_chksum != dst_file_chksum)):
