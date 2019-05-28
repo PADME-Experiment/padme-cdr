@@ -7,11 +7,23 @@ import time
 import getopt
 import subprocess
 
+# Get some info about running script
+thisscript = sys.argv[0]
+SCRIPT_PATH,SCRIPT_NAME = os.path.split(thisscript)
+# Solve all symbolic links to reach installation directory
+while os.path.islink(thisscript): thisscript = os.readlink(thisscript)
+SCRIPT_DIR,SCRIPT_FILE = os.path.split(os.path.abspath(thisscript))
+#print SCRIPT_PATH,SCRIPT_NAME,SCRIPT_DIR,SCRIPT_FILE
+
 # List of available sites
 SITE_LIST = [ "LNF", "LNF2", "CNAF", "CNAF2", "KLOE", "DAQ", "LOCAL" ]
 
 # User running CDR
 CDR_USER = os.environ['USER']
+
+# Look for local checksum command in same dir as current script
+LOCAL_ADLER32_CMD = "%s/adler32.py"%SCRIPT_DIR
+if not os.access(LOCAL_ADLER32_CMD,os.X_OK): LOCAL_ADLER32_CMD = ""
 
 # Access information for DAQ data server
 DAQ_USER = "daq"
@@ -36,7 +48,7 @@ SRM = {
 }
 
 def print_help():
-    print 'TransferFile -F file_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-c] [-v] [-h]'
+    print '%s -F file_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-c] [-v] [-h]'%SCRIPT_NAME
     print '  -F file_name    Name of file to transfer'
     print '  -S src_site     Source site.'
     print '  -D dst_site     Destination site.'
@@ -60,27 +72,6 @@ def run_command(command):
 def now_str():
     return time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime())
 
-#def get_checksum_srm(file,year,srm):
-#    a32 = ""
-#    path = "/daq/%s/rawdata/%s"%(year,file)
-#    cmd = "gfal-sum %s%s adler32"%(srm,path);
-#    for line in run_command(cmd):
-#        try:
-#            (fdummy,a32) = line.rstrip().split()
-#        except:
-#            a32 = ""
-#    return a32
-
-#def get_checksum_ssh(keyfile,user,server,a32cmd,path):
-#    a32 = ""
-#    cmd = "ssh -n -i %s -l %s %s %s %s"%(keyfile,user,server,a32cmd,path)
-#    for line in run_command(cmd):
-#        try:
-#            (a32,fdummy) = line.rstrip().split()
-#        except:
-#            a32 = ""
-#    return a32
-
 def get_path_srm(filename):
     run = ""
     year = ""
@@ -93,6 +84,129 @@ def get_path_srm(filename):
     else:
         return "error"
 
+def get_path_daq(filename):
+    run = ""
+    year = ""
+    m = re.match("(run_\d+_(\d\d\d\d)\d\d\d\d_\d\d\d\d\d\d)_",filename)
+    if m:
+        run = m.group(1)
+        year = m.group(2)
+    if (run and year):
+        return "/data/DAQ/%s/rawdata/%s/%s"%(year,run,filename)
+    else:
+        return "error"
+
+def get_path_local(filename,sdir):
+    run = ""
+    m = re.match("(run_\d+_\d\d\d\d\d\d\d\d_\d\d\d\d\d\d)_",filename)
+    if m:
+        run = m.group(1)
+    if run:
+        return "%s/%s/%s"%(sdir,run,filename)
+    else:
+        return "error"
+
+def get_path_kloe(filename):
+    run = ""
+    year = ""
+    m = re.match("(run_\d+_(\d\d\d\d)\d\d\d\d_\d\d\d\d\d\d)_",filename)
+    if m:
+        run = m.group(1)
+        year = m.group(2)
+    if (run and year):
+        return "/pdm/padme/daq/%s/rawdata/%s/%s"%(year,run,filename)
+    else:
+        return "error"
+
+def get_size_srm(filepath,site):
+    size = ""
+    cmd = "gfal-ls -l %s%s"%(SRM[site],filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
+        if (m): size = m.group(1)
+    return size
+
+def get_size_daq(filepath,server):
+    size = ""
+    cmd = "ssh -i %s -l %s %s ls -l %s"%(DAQ_KEYFILE,DAQ_USER,server,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
+        if (m): size = m.group(1)
+    return size
+
+def get_size_local(filepath):
+    size = ""
+    cmd = "ls -l %s"%filepath
+    for line in run_command(cmd):
+        print line.rstrip()
+        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
+        if (m): size = m.group(1)
+    return size
+
+def get_size_kloe_disk(filepath):
+    size = ""
+    cmd = "ssh -i %s -l %s %s ls -l %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
+        if (m): size = m.group(1)
+    return size
+
+def get_size_kloe_tape(filepath):
+    size = ""
+    cmd = "ssh -i %s -l %s %s dsmc query archive %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        m = re.match("^\s*([0-9,]+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s+.*$",line.rstrip())
+        if (m and m.group(2) == filepath): size = m.group(1).replace(',','')
+    return size
+
+def get_checksum_srm(filepath,site):
+    a32 = ""
+    cmd = "gfal-sum %s%s adler32"%(SRM[site],path);
+    for line in run_command(cmd):
+        try:
+            (fdummy,a32) = line.rstrip().split()
+        except:
+            a32 = ""
+    return a32
+
+def get_checksum_daq(filepath,server):
+    a32 = ""
+    cmd = "ssh -i %s -l %s %s %s %s"%(DAQ_KEYFILE,DAQ_USER,server,DAQ_ADLER32_CMD,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        try:
+            (a32,fdummy) = line.rstrip().split()
+        except:
+            a32 = ""
+    return a32
+
+def get_checksum_local(filepath):
+    if not LOCAL_ADLER32_CMD: return ""
+    a32 = ""
+    cmd = "%s %s"%(LOCAL_ADLER32_CMD,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        try:
+            (a32,fdummy) = line.rstrip().split()
+        except:
+            a32 = ""
+    return a32
+
+def get_checksum_kloe(filepath):
+    a32 = ""
+    cmd = "ssh -i %s -l %s %s %s %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,KLOE_ADLER32_CMD,filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        try:
+            (a32,fdummy) = line.rstrip().split()
+        except:
+            a32 = ""
+    return a32
+
 def check_file(filename,site,sdir):
     if (site == "LNF" or site == "LNF2" or site == "CNAF" or site == "CNAF2"):
         return check_file_srm(filename,site)
@@ -104,48 +218,45 @@ def check_file(filename,site,sdir):
         return check_file_kloe(filename)
 
 def check_file_srm(filename,site):
-    size = ""
-    chksum = ""
     filepath = get_path_srm(filename)
-    if filepath == "error":
-        return ("error","","","")
-    cmd = "gfal-ls -l %s%s"%(SRM[site],filepath)
-    for line in run_command(cmd):
-        if ( re.match("^gfal-ls error: ",line) ):
-            return ("missing",filepath,size,chksum)
-            break
-        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
-        if (m):
-            size = m.group(1)
-    cmd = "gfal-sum %s%s adler32"%(SRM[site],filepath);
-    for line in run_command(cmd):
-        try:
-            (fdummy,chksum) = line.rstrip().split()
-        except:
-            chksum = ""
+    if filepath == "error": return ("error","","","")
+    size = get_size_srm(filepath,site)
+    if not size: return ("missing",filepath,"","")
+    chksum = get_checksum_srm(filepath,site)
     return ("ok",filepath,size,chksum)
 
-def copy_file_srm_srm(filename,src_site,dst_site):
+def check_file_daq(filename,server):
+    filepath = get_path_daq(filename)
+    if filepath == "error": return ("error","","","")
+    size = get_size_daq(filepath,server)
+    if not size: return ("missing",filepath,"","")
+    chksum = get_checksum_daq(filepath,server)
+    return ("ok",filepath,size,chksum)
 
-    copy_failed = False
-    print "- File %s - Starting copy from %s to %s"%(filename,src_site,dst_site)
+def check_file_local(filename,sdir):
+    filepath = get_path_local(filename,sdir)
+    if filepath == "error": return ("error","","","")
+    size = get_size_local(filepath)
+    if not size: return ("missing",filepath,"","")
+    chksum = get_checksum_local(filepath)
+    return ("ok",filepath,size,chksum)
 
-    filepath = get_path_srm(filename)
-    cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s%s %s%s"%(SRM[src_site],filepath,SRM[dst_site],filepath)
-    print cmd
-    #for line in run_command(cmd):
-    #    print line.rstrip()
-    #    if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ):
-    #        copy_failed = True
-    #
-    #if copy_failed:
-    #    print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to %s"%(rawfile,src_site,dst_site)
-    #    cmd = "gfal-rm %s%s"%(SRM[dst_site],filepath)
-    #    for line in self.run_command(cmd): print line.rstrip()
-    #    return "error"
-
-    return "ok"
-
+def check_file_kloe(filename):
+    size = ""
+    chksum = ""
+    filepath = get_path_kloe(filename)
+    if filepath == "error": return ("error","","","")
+    # First check if file is on disk
+    size = get_size_kloe_disk(filepath)
+    if size:
+        # File is on disk: get its checksum
+        chksum = get_checksum_kloe(filepath)
+    else:
+        # File is not on disk: see if it is on tape
+        size = get_size_kloe_tape(filepath)
+        if not size: return ("missing",filepath,size,chksum)
+        # Unfortunately if file is on tape there is no way to get its checksum
+    return ("ok",filepath,size,chksum)
 
 def copy_file(filename,src_site,src_dir,dst_site,dst_dir):
 
@@ -184,7 +295,7 @@ def copy_file(filename,src_site,src_dir,dst_site,dst_dir):
         # LOCAL -> DAQ
         elif (dst_site == "DAQ"):
             return copy_file_local_daq(filename,src_dir,dst_dir)
-        # LOCAL -> DAQ
+        # LOCAL -> KLOE
         elif (dst_site == "KLOE"):
             return copy_file_local_kloe(filename,src_dir)
         # LOCAL -> LOCAL
@@ -194,6 +305,339 @@ def copy_file(filename,src_site,src_dir,dst_site,dst_dir):
     # Anything else is forbidden
     print "- WARNING - Copy from %s to %s is not supported"%(src_site,dst_site)
     return "error"
+
+def copy_file_srm_srm(filename,src_site,dst_site):
+
+    copy_failed = False
+    print "- File %s - Starting copy from %s to %s"%(filename,src_site,dst_site)
+
+    filepath = get_path_srm(filename)
+    cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s%s %s%s"%(SRM[src_site],filepath,SRM[dst_site],filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+    
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to %s"%(filename,src_site,dst_site)
+        cmd = "gfal-rm %s%s"%(SRM[dst_site],filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Checksum verification is automatically handled by the GFAL protocol
+
+    return "ok"
+
+def copy_file_srm_daq(filename,src_site,daq_server):
+
+    copy_failed = False
+    print "- File %s - Starting copy from %s to DAQ(%s)"%(filename,src_site,daq_server)
+
+    src_filepath = get_path_srm(filename)
+    dst_filepath = get_path_daq(filename)
+
+    # Create destination directory on DAQ server
+    dst_dir = os.path.dirname(dst_filepath)
+    cmd = "ssh -i %s -l %s %s mkdir -p %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,dst_dir)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Copy file from SRM to local tmp file
+    tmp_file = "/tmp/%s"%filename
+    cmd = "gfal-copy -t 3600 -T 3600 -p %s%s file://%s"%(SRM[src_site],src_filepath,tmp_file)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to local file"%(filename,src_site)
+        cmd = "rm -f %s"%tmp_file
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Now send local copy to DAQ server using good old scp
+    cmd = "scp -i %s %s %s@%s:%s"%(DAQ_KEYFILE,tmp_file,DAQ_USER,daq_server,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Clean up local temporary file
+    cmd = "rm -f %s"%tmp_file
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,src_site,"")
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"DAQ",daq_server)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or a32_dst == "" or a32_src != a32_dst ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from %s to DAQ(%s)"%(filename,src_site,daq_server)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_srm_kloe(filename,src_site):
+
+    copy_failed = False
+    print "- File %s - Starting copy from %s to KLOE"%(filename,src_site)
+
+    src_filepath = get_path_srm(filename)
+    dst_filepath = get_path_kloe(filename)
+
+    # Create destination directory on KLOE disk
+    dst_dir = os.path.dirname(dst_filepath)
+    cmd = "ssh -i %s -l %s %s mkdir -p %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,dst_dir)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Copy file from SRM to local tmp file
+    tmp_file = "/tmp/%s"%filename
+    cmd = "gfal-copy -t 3600 -T 3600 -p %s%s file://%s"%(SRM[src_site],src_filepath,tmp_file)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to local file"%(filename,src_site)
+        for line in run_command("rm -f %s"%tmp_file): print line.rstrip()
+        return "error"
+
+    # Now send local copy to KLOE temporary directory using good old scp
+    tmp_file_kloe = "%s/%s"%(KLOE_TMPDIR,filename)
+    cmd = "scp -i %s %s %s@%s:%%s"%(KLOE_KEYFILE,tmp_file,KLOE_USER,KLOE_SERVER,tmp_file_kloe)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Clean up local temporary file
+    cmd = "rm -f %s"%tmp_file
+    for line in run_command(cmd): print line.rstrip()
+
+    # Verify checksum
+    (dum0,dum1,size_src,a32_src) = check_file(filename,src_site,"")
+    size_dst = get_size_kloe_disk(tmp_file_kloe)
+    a32_dst = get_checksum_kloe(tmp_file_kloe)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or a32_dst == "" or a32_src != a32_dst ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from %s to KLOE"%(filename,src_site)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,tmp_file_kloe)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Move file from temporary directory to daq data directory
+    cmd = "ssh -i %s -l %s %s mv %s %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,tmp_file_kloe,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    return "ok"
+
+def copy_file_srm_local(filename,src_site,dst_dir):
+
+    copy_failed = False
+    print "- File %s - Starting copy from %s to LOCAL(%s)"%(filename,src_site,dst_dir)
+
+    src_filepath = get_path_srm(filename)
+    dst_filepath = get_path_local(filename,dst_dir)
+    cmd = "gfal-copy -t 3600 -T 3600 -p %s%s file://%s"%(SRM[src_site],src_filepath,dst_filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+    
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to LOCAL(%s)"%(filename,src_site,dst_dir)
+        cmd = "rm -f %s"%dst_filepath
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,src_site,"")
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"LOCAL",dst_dir)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or (a32_dst != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from %s to LOCAL(%s)"%(filename,src_site,dst_dir)
+        cmd = "rm -f %s"%dst_filepath
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_daq_srm(filename,daq_server,dst_site):
+
+    copy_failed = False
+    print "- File %s - Starting copy from DAQ(%s) to %s"%(filename,daq_server,dst_site)
+
+    src_filepath = get_path_daq(filename)
+    dst_filepath = get_path_srm(filename)
+    cmd = "gfal-copy -t 3600 -T 3600 -p -D\"SFTP PLUGIN:USER=%s\" -D\"SFTP PLUGIN:PRIVKEY=%s\" sftp://%s%s %s%s"%(DAQ_USER,DAQ_KEYFILE,daq_server,src_filepath,SRM[dst_site],dst_filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from DAQ(%s) to %s"%(filename,daq_server,dst_site)
+        cmd = "gfal-rm %s%s"%(SRM[dst_site],dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"DAQ",daq_server)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,dst_site,"")
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or a32_dst == "" or a32_src != a32_dst ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from DAQ(%s) to %s"%(filename,daq_server,dst_site)
+        cmd = "gfal-rm %s%s"%(SRM[dst_site],dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_daq_daq(filename,src_server,dst_server):
+
+    print "- File %s - Starting copy from DAQ(%s) to DAQ(%s)"%(filename,src_server,dst_server)
+
+    filepath = get_path_daq(filename)
+    cmd = "scp -3 -i %s %s@%s%s %s@%s%s"%(DAQ_KEYFILE,DAQ_USER,src_server,filepath,DAQ_USER,dst_server,filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"DAQ",src_server)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"DAQ",dst_server)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or a32_dst == "" or a32_src != a32_dst ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from DAQ(%s) to DAQ(%s)"%(filename,src_server,dst_server)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(DAQ_KEYFILE,DAQ_USER,dst_server,dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_daq_kloe(filename,daq_server):
+
+    print "- File %s - Starting copy from DAQ(%s) to KLOE"%(filename,daq_server)
+
+    src_filepath = get_path_daq(filename)
+    dst_filepath = get_path_kloe(filename)
+    cmd = "scp -3 -i %s %s@%s%s %s@%s%s"%(DAQ_KEYFILE,DAQ_USER,daq_server,src_filepath,KLOE_USER,KLOE_SERVER,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"DAQ",daq_server)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"KLOE","")
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or a32_dst == "" or a32_src != a32_dst ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from DAQ(%s) to KLOE"%(filename,daq_server)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_daq_local(filename,daq_server,dst_dir):
+
+    print "- File %s - Starting copy from DAQ(%s) to LOCAL(%s)"%(filename,daq_server,dst_dir)
+
+    src_filepath = get_path_daq(filename)
+    dst_filepath = get_path_local(filename,dst_dir)
+    cmd = "scp -i %s %s@%s%s %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,src_filepath,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"DAQ",daq_server)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"LOCAL",dst_dir)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_src == "" or (a32_dst != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from DAQ(%s) to LOCAL(%s)"%(filename,daq_server,dst_dir)
+        cmd = "rm -f %s"%dst_filepath
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_local_srm(filename,src_dir,dst_site):
+
+    copy_failed = False
+    print "- File %s - Starting copy from LOCAL(%s) to %s"%(filename,src_dir,dst_site)
+
+    src_filepath = get_path_local(filename,src_dir)
+    dst_filepath = get_path_srm(filename)
+    cmd = "gfal-copy -t 3600 -T 3600 -p file://%s %s%s"%(src_filepath,SRM[dst_site],dst_filepath)
+    for line in run_command(cmd):
+        print line.rstrip()
+        if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
+    
+    if copy_failed:
+        print "- File %s - ***ERROR*** gfal-copy returned error status while copying from LOCAL(%s) to %s"%(filename,src_dir,dst_site)
+        cmd = "gfal-rm %s%s"%(SRM[dst_site],dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"LOCAL",src_dir)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,dst_site,"")
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_dst == "" or (a32_src != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from LOCAL(%s) to %s"%(filename,src_dir,dst_site)
+        cmd = "gfal-rm %s%s"%(SRM[dst_site],dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_local_daq(filename,src_dir,daq_server):
+
+    print "- File %s - Starting copy from LOCAL(%s) to DAQ(%s)"%(filename,src_dir,daq_server)
+
+    src_filepath = get_path_local(filename,dst_dir)
+    dst_filepath = get_path_daq(filename)
+    cmd = "scp -i %s %s %s@%s%s"%(DAQ_KEYFILE,src_filepath,DAQ_USER,daq_server,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"LOCAL",src_dir)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"DAQ",daq_server)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_dst == "" or (a32_src != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from LOCAL(%s) to DAQ(%s)"%(filename,src_dir,daq_server)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_local_kloe(filename,src_dir):
+
+    print "- File %s - Starting copy from LOCAL(%s) to KLOE"%(filename,src_dir)
+
+    src_filepath = get_path_local(filename,src_dir)
+    dst_filepath = get_path_kloe(filename)
+    cmd = "scp -i %s %s %s@%s%s"%(KLOE_KEYFILE,src_filepath,KLOE_USER,KLOE_SERVER,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"LOCAL",src_dir)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"KLOE","")
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or a32_dst == "" or (a32_src != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from LOCAL(%s) to KLOE"%(filename,src_dir)
+        cmd = "ssh -i %s -l %s %s rm -f %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER,dst_filepath)
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
+
+def copy_file_local_local(filename,src_dir,dst_dir):
+
+    print "- File %s - Starting copy from LOCAL(%s) to LOCAL(%s)"%(filename,src_dir,dst_dir)
+
+    src_filepath = get_path_local(filename,src_dir)
+    dst_filepath = get_path_local(filename,dst_dir)
+    cmd = "cp %s %s"%(src_filepath,dst_filepath)
+    for line in run_command(cmd): print line.rstrip()
+
+    # Compare source and destination
+    (dum0,dum1,size_src,a32_src) = check_file(filename,"LOCAL",src_dir)
+    (dum0,dum1,size_dst,a32_dst) = check_file(filename,"LOCAL",dst_dir)
+    print "- File %s - Final check - Src: %s %s - Dst: %s %s"%(filename,size_src,a32_src,size_dst,a32_dst)
+    if ( size_src != size_dst or (a32_src != "" and a32_dst != "" and a32_src != a32_dst) ):
+        print "- File %s - ***ERROR*** file copies do not match while copying from LOCAL(%s) to LOCAL(%s)"%(filename,src_dir,dst_dir)
+        cmd = "rm -f %s"%dst_filepath
+        for line in run_command(cmd): print line.rstrip()
+        return "error"
+
+    return "ok"
 
 def main(argv):
 
@@ -239,11 +683,17 @@ def main(argv):
         if (src_dir == ""):
             print "WARNING: source is LOCAL but no dir specified. Using current directory"
             src_dir = "."
+        src_dir = os.path.abspath(src_dir)
 
     if (dst_site == "LOCAL"):
         if (dst_dir == ""):
             print "WARNING: destination is LOCAL but no dir specified. Using current directory"
             dst_dir = "."
+        dst_dir = os.path.abspath(dst_dir)
+
+    if (src_site == "LOCAL" or dst_site == "LOCAL"):
+        if not LOCAL_ADLER32_CMD:
+            print "WARNING: LOCAL version of ADLER32 program is not available. No checksum verification after copy"
 
     if (src_site == "DAQ"):
         if (src_dir == ""):
