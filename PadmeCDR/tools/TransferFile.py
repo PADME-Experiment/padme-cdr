@@ -47,14 +47,26 @@ SRM = {
     "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 }
 
+# Special space token option needed to write data to some sites (currently only LNF2)
+SPACE_TOKEN = {
+    "LNF"   : "",
+    "LNF2"  : "-S PADME_SCRATCH",
+    "CNAF"  : "",
+    "CNAF2" : ""
+}
+
+# Default source and destination
+SRC_DEFAULT = "CNAF"
+DST_DEFAULT = "LNF"
+
 # Verbose level (no messages by default)
 VERBOSE = 0
 
 def print_help():
     print '%s -F file_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-c] [-v] [-h]'%SCRIPT_NAME
     print '  -F file_name    Name of file to transfer'
-    print '  -S src_site     Source site.'
-    print '  -D dst_site     Destination site.'
+    print '  -S src_site     Source site. Default: %s'%SRC_DEFAULT
+    print '  -D dst_site     Destination site. Default: %s'%DST_DEFAULT
     print '  -s src_dir      Path to data directory if source is LOCAL, name of data server if source is DAQ.'
     print '  -d dst_dir      Path to data directory if destination is LOCAL, name of data server if destination is DAQ.'
     print '  -v              Enable verbose mode (repeat to increase level)'
@@ -315,7 +327,7 @@ def copy_file_srm_srm(filename,src_site,dst_site):
     print "- File %s - Starting copy from %s to %s"%(filename,src_site,dst_site)
 
     filepath = get_path_srm(filename)
-    cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s%s %s%s"%(SRM[src_site],filepath,SRM[dst_site],filepath)
+    cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s %s%s %s%s"%(SPACE_TOKEN[dst_site],SRM[src_site],filepath,SRM[dst_site],filepath)
     for line in run_command(cmd):
         print line.rstrip()
         if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
@@ -464,7 +476,7 @@ def copy_file_daq_srm(filename,daq_server,dst_site):
 
     src_filepath = get_path_daq(filename)
     dst_filepath = get_path_srm(filename)
-    cmd = "gfal-copy -t 3600 -T 3600 -p -D\"SFTP PLUGIN:USER=%s\" -D\"SFTP PLUGIN:PRIVKEY=%s\" sftp://%s%s %s%s"%(DAQ_USER,DAQ_KEYFILE,daq_server,src_filepath,SRM[dst_site],dst_filepath)
+    cmd = "gfal-copy -t 3600 -T 3600 -p %s -D\"SFTP PLUGIN:USER=%s\" -D\"SFTP PLUGIN:PRIVKEY=%s\" sftp://%s%s %s%s"%(SPACE_TOKEN[dst_site],DAQ_USER,DAQ_KEYFILE,daq_server,src_filepath,SRM[dst_site],dst_filepath)
     for line in run_command(cmd):
         print line.rstrip()
         if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
@@ -556,7 +568,7 @@ def copy_file_local_srm(filename,src_dir,dst_site):
 
     src_filepath = get_path_local(filename,src_dir)
     dst_filepath = get_path_srm(filename)
-    cmd = "gfal-copy -t 3600 -T 3600 -p file://%s %s%s"%(src_filepath,SRM[dst_site],dst_filepath)
+    cmd = "gfal-copy -t 3600 -T 3600 -p %s file://%s %s%s"%(SPACE_TOKEN[dst_site],src_filepath,SRM[dst_site],dst_filepath)
     for line in run_command(cmd):
         print line.rstrip()
         if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ): copy_failed = True
@@ -647,10 +659,10 @@ def main(argv):
     global VERBOSE
 
     filename = ""
-    src_site = "CNAF"
+    src_site = SRC_DEFAULT
     src_string = ""
     src_dir = ""
-    dst_site = "LNF"
+    dst_site = DST_DEFAULT
     dst_string = ""
     dst_dir = ""
 
@@ -680,8 +692,7 @@ def main(argv):
         elif opt == '-v':
             VERBOSE += 1
 
-    if (not filename):
-        end_error("ERROR - No filename specified")
+    if (not filename): end_error("ERROR - No filename specified")
 
     if (src_site == "LOCAL"):
         if (src_dir == ""):

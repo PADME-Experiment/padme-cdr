@@ -1,36 +1,38 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 -r run [-S src_site] [-D dst_site] [-L dst_dir] [-y year] [-j jobs] [-h]" 1>&2
+    echo "Usage: $0 -r run [-S src_site] [-D dst_site] [-d dst_dir] [-j jobs] [-h]" 1>&2
     echo "Available source sites: CNAF CNAF2 LNF LNF2"
     echo "Available destination sites: CNAF CNAF2 LNF LNF2 LOCAL"
     echo "Default: copy from CNAF to LOCAL" 1>&2
     exit 1
 }
 
+# Find where this script is really located: needed to find the corresponding TransferFile.py script
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+TRANSFERFILE=$DIR/TransferFile.py
+if ! [[ -e $TRANSFERFILE ]]; then
+    echo "ERROR - $TRANSFERFILE does not exist"
+    usage
+fi
+if ! [[ -f $TRANSFERFILE ]]; then
+    echo "ERROR - $TRANSFERFILE is not a regular file"
+    usage
+fi
+if ! [[ -x $TRANSFERFILE ]]; then
+    echo "ERROR - $TRANSFERFILE is not executable"
+    usage
+fi
+
 now() {
     date -u +"%Y-%m-%d %H:%M:%S"
 }
-export -f now
-
-# Function to handle the transfer of a single file
-transfer() {
-    src_file=$1
-    dst_file=$2
-    space_token=$3
-    #echo "$( now ) ${src_file} -> ${dst_file}"
-    #gfal-copy -p --checksum ADLER32 -t 3600 -T 3600 "${src_file}" "${dst_file}"
-    echo "$( now ) gfal-copy -p --checksum ADLER32 -t 3600 -T 3600 ${space_token} ${src_file} ${dst_file}"
-    gfal-copy -p --checksum ADLER32 -t 3600 -T 3600 ${space_token} ${src_file} ${dst_file}
-    rc=$?
-    if [[ $rc -eq 0 ]]; then
-	echo $( now ) - Copy was successful
-    else
-	echo $( now ) - WARNING - gfal-copy reported an error
-    fi
-    return $rc
-}
-export -f transfer
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage system
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
@@ -43,38 +45,23 @@ year=""
 src_site="CNAF"
 dst_site="LOCAL"
 dst_dir=""
-src_file=""
-dst_file=""
 jobs=10
-test=0
-while getopts ":r:y:S:D:L:s:d:j:th" o; do
+while getopts ":r:y:S:D:d:j:h" o; do
     case "${o}" in
 	r)
 	    run=${OPTARG}
 	    ;;
-        y)
-            year=${OPTARG}
-            ;;
         S)
             src_site=${OPTARG}
             ;;
         D)
             dst_site=${OPTARG}
             ;;
-        L)
-            dst_dir=${OPTARG}
-            ;;
-        s)
-            src_file=${OPTARG}
-            ;;
         d)
-            dst_file=${OPTARG}
+            dst_dir=${OPTARG}
             ;;
         j)
             jobs=${OPTARG}
-            ;;
-        t)
-            test=1
             ;;
         *)
             usage
@@ -82,28 +69,20 @@ while getopts ":r:y:S:D:L:s:d:j:th" o; do
     esac
 done
 
-# If source and destination files are specified, just do the copy and exit
-if [[ -n $src_file && -n $dst_file ]]; then
-    transfer $src_file $dst_file
-    exit $?
-fi
-
 # Check if run was specified
 if [[ -z $run ]]; then
     echo "ERROR - No run specified"
     usage
 fi
 
-# If no year was specified, try and extract it from run name
+# Extract year from run name
+regex="^run_[0-9]+_([0-9][0-9][0-9][0-9])[0-9]+_[0-9]+$"
+if [[ $run =~ $regex ]]; then
+    year="${BASH_REMATCH[1]}"
+fi
 if [[ -z $year ]]; then
-    regex="^run_[0-9]+_([0-9][0-9][0-9][0-9])[0-9]+_[0-9]+$"
-    if [[ $run =~ $regex ]]; then
-	year="${BASH_REMATCH[1]}"
-    fi
-    if [[ -z $year ]]; then
-	echo "ERROR - Unable to extract year from run name and no year specified"
-	usage
-    fi
+    echo "ERROR - Unable to extract year from run name"
+    usage
 fi
 
 # If destination is LOCAL, check if a directory was specified or set it to the current dir
@@ -125,31 +104,11 @@ else
     usage
 fi
 
-# Define full URI of destination run directory
-space_token=""
-if [[ $dst_site = "CNAF" ]]; then
-    dst_run_uri="${srm_cnaf}/daq/${year}/rawdata/${run}"
-elif [[ $dst_site = "CNAF2" ]]; then
-    dst_run_uri="${srm_cnaf2}/daq/${year}/rawdata/${run}"
-elif [[ $dst_site = "LNF" ]]; then
-    dst_run_uri="${srm_lnf}/daq/${year}/rawdata/${run}"
-elif [[ $dst_site = "LNF2" ]]; then
-    space_token="-S PADME_SCRATCH"
-    dst_run_uri="${srm_lnf2}/daq/${year}/rawdata/${run}"
-elif [[ $dst_site = "LOCAL" ]]; then
-    dst_run_uri="file://${dst_dir}/${run}"
-else
-    echo "ERROR - Destination site ${dst_site} is unknown. Please use CNAF, CNAF2, LNF, LNF2, or LOCAL"
-    usage
-fi
-
 # Transfer all files from source to destination using parallel tool
-if [[ $test -eq 0 ]]; then
-    echo $( now ) - Copying all files from $src_run_uri using $jobs parallel streams
-    gfal-ls $src_run_uri | sort | parallel -j $jobs transfer "${src_run_uri}/"{} "${dst_run_uri}/"{} "\"${space_token}\""
-    echo $( now ) - All copy jobs completed
+echo $( now ) - Copying all files from $src_run_uri using $jobs parallel streams
+if [[ $dst_site = "LOCAL" ]]; then
+    gfal-ls $src_run_uri | sort | parallel -j $jobs $TRANSFERFILE -F {} -S $src_site -D $dst_site -d $dst_dir -v
 else
-    echo $( now ) - TEST MODE - Copying all files from $src_run_uri using $jobs parallel streams
-    gfal-ls $src_run_uri | sort | parallel -j $jobs transfer "${src_run_uri}/"{} "file:///dev/null"
-    echo $( now ) - TEST MODE - All copy jobs completed
+    gfal-ls $src_run_uri | sort | parallel -j $jobs $TRANSFERFILE -F {} -S $src_site -D $dst_site -v
 fi
+echo $( now ) - All copy jobs completed
