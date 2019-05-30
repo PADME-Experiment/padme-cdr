@@ -65,7 +65,7 @@ def end_error(msg):
     sys.exit(2)
 
 def run_command(command):
-    print "> %s"%command
+    #print "> %s"%command
     p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
     return iter(p.stdout.readline, b'')
 
@@ -99,6 +99,7 @@ def get_file_list_srm(run,site):
     file_list = []
     run_path = get_run_path_srm(run)
     cmd = "gfal-ls %s%s"%(SRM[site],run_path)
+    print "> %s"%cmd
     for line in run_command(cmd):
         if re.match("^gfal-ls error: ",line):
             print line.rstrip()
@@ -112,6 +113,7 @@ def get_file_list_local(run,loc_dir):
     file_list = []
     run_path = "%s/%s"(loc_dir,run)
     cmd = "ls %s"%run_path
+    print "> %s"%cmd
     for line in run_command(cmd):
         if re.match("^ls: cannot access ",line):
             print line.rstrip()
@@ -125,6 +127,7 @@ def get_file_list_daq(run,server):
     file_list = []
     run_path = get_run_path_daq(run)
     cmd = "ssh -i %s -l %s %s ls %s"%(DAQ_KEYFILE,DAQ_USER,server,run_path)
+    print "> %s"%cmd
     for line in run_command(cmd):
         if re.match("^ls: cannot access ",line):
             print line.rstrip()
@@ -215,20 +218,20 @@ def main(argv):
     if (dst_site == "DAQ" or dst_site == "LOCAL"): dst_string += "(%s)"%dst_dir
 
     print
-    print "=== TransferRun %s from %s to %s ==="%(run,src_string,dst_string)
+    print "%s === TransferRun %s from %s to %s ==="%(now_str(),run,src_string,dst_string)
 
     file_list = get_file_list(run,src_site,src_dir)
     if file_list[0] == "error": end_error("ERROR - Unable to get list of files for run %s from %s"%(run,src_string))
 
     print "%s - Start copying run %s (%d files)"%(now_str(),run,len(file_list))
 
-    cmd = "parallel %s -j %s -F {} -S %s -D %s"%(TRANSFERFILE,jobs,src_site,dst_site)
+    cmd = "parallel -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
     if src_dir: cmd += " -s %s"%src_dir
     if dst_dir: cmd += " -d %s"%dst_dir
     cmd += " :::"
     for f in file_list: cmd += " %s"%f
-    print cmd
-    #for line in run_command(cmd): print line.rstrip()
+    #print "> %s"%cmd
+    for line in run_command(cmd): print line.rstrip()
 
     print "%s - Run %s copied"%(now_str(),run)
 
