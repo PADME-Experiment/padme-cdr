@@ -55,6 +55,7 @@ timeline_storage = [
     "lnfdisk",
     "lnf2disk",
     "cnaftape",
+    "cnafdisk",
     "kloetape",
     "kloedisk"
 ]
@@ -66,6 +67,7 @@ timeline_file = {
     "lnfdisk" :"%s/log/timeline_lnfdisk.log"%cdr_dir,
     "lnf2disk":"%s/log/timeline_lnf2disk.log"%cdr_dir,
     "cnaftape":"%s/log/timeline_cnaftape.log"%cdr_dir,
+    "cnafdisk":"%s/log/timeline_cnafdisk.log"%cdr_dir,
     "kloetape":"%s/log/timeline_kloetape.log"%cdr_dir,
     "kloedisk":"%s/log/timeline_kloedisk.log"%cdr_dir
 }
@@ -127,6 +129,16 @@ cnaf_summary_file = "/home/%s/du-padme/cnaf_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
 cnaf_tape_tot_TB = 500.
+
+#################################
+### CNAF disk occupation data ###
+#################################
+
+# Path to file with summary occupation info
+cnaf2_summary_file = "/home/%s/du-padme/cnaf2_spazio-occupato.output"%cdr_user
+
+# Total available space in TB
+cnaf2_disk_tot_TB = 100.
 
 ##############################
 ### KLOE tape library data ###
@@ -284,6 +296,18 @@ def get_cnaf_info():
             tape_use = rc.group(3)
     return tape_use
 
+def get_cnaf2_info():
+
+    disk_use = "0"
+    cmd = "tail -1 %s"%cnaf2_summary_file
+    for line in run_command(cmd):
+        rc = re.match("^\s*(\d\d\d\d\d\d\d\d)_(\d\d\d\d)\s+(\d+)\s*$",line)
+        if rc:
+            read_date = rc.group(1)
+            read_time = rc.group(2)
+            disk_use = rc.group(3)
+    return disk_use
+
 def append_timeline_info(storage,now,data_list):
     with open(timeline_file[storage],"a") as tlf:
         tlf.write("%s"%now)
@@ -431,6 +455,17 @@ def start_monitor():
 
         mh.write(",")
 
+        ### Get CNAF disk info ###
+        cnaf2_disk_use = get_cnaf2_info()
+        cnaf2_disk_use_TB = float(cnaf2_disk_use)/1024/1024/1024/1024
+        cnaf2_disk_opc = str(int(100.*cnaf2_disk_use_TB/cnaf2_disk_tot_TB))
+        cnaf2_disk_color = color_ok
+        if cnaf2_disk_use_TB > cnaf2_disk_tot_TB: cnaf2_disk_color = color_warn
+        mh.write("{\"title\":\"CNAF Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc,cnaf2_disk_color))
+        append_timeline_info("cnafdisk",now_time,(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc))
+
+        mh.write(",")
+
         ### Get KLOE tape library info ###
         (kloe_tape_use,kloe_disk_tot,kloe_disk_avl,kloe_disk_opc) = get_kloe_info()
 
@@ -493,15 +528,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
         mh.write("RANGE_Y 0. 500.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"00ff00\" ]\n")
-        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"KLOE Tape\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("lnfdisk","USED"))
         mh.write(" , ")
         mh.write(format_timeline_info("lnf2disk","USED"))
         mh.write(" , ")
         mh.write(format_timeline_info("cnaftape","USED"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnafdisk","USED"))
         mh.write(" , ")
         mh.write(format_timeline_info("kloetape","USED"))
         mh.write("]\n")

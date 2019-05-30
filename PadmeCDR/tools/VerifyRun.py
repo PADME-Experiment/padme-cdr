@@ -8,7 +8,7 @@ import getopt
 import subprocess
 
 # List of available sites
-SITE_LIST = [ "LNF", "LNF2", "CNAF" , "KLOE" , "DAQ" ]
+SITE_LIST = [ "LNF", "LNF2", "CNAF", "CNAF2", "KLOE" , "DAQ", "LOCAL" ]
 
 # User running CDR
 CDR_USER = os.environ['USER']
@@ -30,44 +30,31 @@ DAQ_ADLER32_CMD = "/home/daq/DAQ/tools/adler32"
 LNF_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
 LNF2_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 
 def print_help():
-    print 'VerifyRun -R run_name [-S src_site] [-D dst_site] [-s daq_server] [-Y year] [-c] [-v] [-h]'
+    print 'VerifyRun -R run_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-Y year] [-c] [-v] [-h]'
     print '  -R run_name     Name of run to verify'
-    print '  -S src_site     Source site. Default: CNAF. Available %s'%SITE_LIST
-    print '  -D dst_site     Destination site. Default: LNF. Available %s'%SITE_LIST
-    print '  -s daq_server   Name of data server if src_site or dst_site is DAQ. Available %s'%DAQ_SERVERS
+    print '  -S src_site     Source site.'
+    print '  -D dst_site     Destination site.'
+    print '  -s src_dir      Path to data directory if source is LOCAL, name of data server if source is DAQ.'
+    print '  -d dst_dir      Path to data directory if destination is LOCAL, name of data server if destination is DAQ.'
     print '  -Y year         Specify year of data taking. Default: year from run name'
     print '  -c              Enable checksum verification (very time consuming!)'
     print '  -v              Enable verbose mode (repeat to increase level)'
     print '  -h              Show this help message and exit'
+    print '  Available sites:   %s'%SITE_LIST
+    print '  Available servers: %s'%DAQ_SERVERS
 
-def get_checksum_lnf(file,year):
+def end_error(msg):
+    print msg
+    print_help()
+    sys.exit(2)
+
+def get_checksum_srm(file,year,srm):
     a32 = ""
     path = "/daq/%s/rawdata/%s"%(year,file)
-    cmd = "gfal-sum %s%s adler32"%(LNF_SRM,path);
-    for line in run_command(cmd):
-        try:
-            (fdummy,a32) = line.rstrip().split()
-        except:
-            a32 = ""
-    return a32
-
-def get_checksum_lnf2(file,year):
-    a32 = ""
-    path = "/daq/%s/rawdata/%s"%(year,file)
-    cmd = "gfal-sum %s%s adler32"%(LNF2_SRM,path);
-    for line in run_command(cmd):
-        try:
-            (fdummy,a32) = line.rstrip().split()
-        except:
-            a32 = ""
-    return a32
-
-def get_checksum_cnaf(file,year):
-    a32 = ""
-    path = "/daq/%s/rawdata/%s"%(year,file)
-    cmd = "gfal-sum %s%s adler32"%(CNAF_SRM,path);
+    cmd = "gfal-sum %s%s adler32"%(srm,path);
     for line in run_command(cmd):
         try:
             (fdummy,a32) = line.rstrip().split()
@@ -97,20 +84,7 @@ def get_file_list_daq(run,year,server):
         if ( re.match("^ls: cannot access ",line) ):
             missing = True
             break
-        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
-        if (m):
-            file_list.append(m.group(2))
-            file_size[m.group(2)] = int(m.group(1))
-    return (missing,file_list,file_size)
-
-def get_file_list_cnaf(run,year):
-    file_list = []
-    file_size = {}
-    missing = False
-    run_dir = "/daq/%s/rawdata/%s"%(year,run)
-    cmd = "gfal-ls -l %s%s"%(CNAF_SRM,run_dir)
-    for line in run_command(cmd):
-        if ( re.match("^gfal-ls error: ",line) ):
+        if ( re.match("^.*No such file or directory",line) ):
             missing = True
             break
         m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
@@ -119,14 +93,17 @@ def get_file_list_cnaf(run,year):
             file_size[m.group(2)] = int(m.group(1))
     return (missing,file_list,file_size)
 
-def get_file_list_lnf(run,year):
+def get_file_list_local(run,year,loc_dir):
     file_list = []
     file_size = {}
     missing = False
-    run_dir = "/daq/%s/rawdata/%s"%(year,run)
-    cmd = "gfal-ls -l %s%s"%(LNF_SRM,run_dir)
+    run_dir = "%s/%s"%(loc_dir,run)
+    cmd = "/bin/bash -c \'( cd %s; ls -l )\'"%run_dir
     for line in run_command(cmd):
-        if ( re.match("^gfal-ls error: ",line) ):
+        if ( re.match("^ls: cannot access ",line) ):
+            missing = True
+            break
+        if ( re.match("^.*No such file or directory",line) ):
             missing = True
             break
         m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
@@ -135,12 +112,12 @@ def get_file_list_lnf(run,year):
             file_size[m.group(2)] = int(m.group(1))
     return (missing,file_list,file_size)
 
-def get_file_list_lnf2(run,year):
+def get_file_list_srm(run,year,srm):
     file_list = []
     file_size = {}
     missing = False
     run_dir = "/daq/%s/rawdata/%s"%(year,run)
-    cmd = "gfal-ls -l %s%s"%(LNF2_SRM,run_dir)
+    cmd = "gfal-ls -l %s%s"%(srm,run_dir)
     for line in run_command(cmd):
         if ( re.match("^gfal-ls error: ",line) ):
             missing = True
@@ -176,18 +153,18 @@ def main(argv):
     run = ""
     src_site = "CNAF"
     src_string = ""
+    src_dir = ""
     dst_site = "LNF"
     dst_string = ""
-    daq_srv = ""
+    dst_dir = ""
     year = ""
     checksum = False
     verbose = 0
 
     try:
-        opts,args = getopt.getopt(argv,"R:S:D:s:Y:cvh")
-    except getopt.GetoptError:
-        print_help()
-        sys.exit(2)
+        opts,args = getopt.getopt(argv,"R:S:D:s:d:Y:cvh")
+    except getopt.GetoptError as err:
+        end_error("ERROR - %s"%err)
 
     for opt,arg in opts:
         if opt == '-h':
@@ -197,22 +174,16 @@ def main(argv):
             run = arg
         elif opt == '-S':
             if (not arg in SITE_LIST):
-                print "ERROR - Invalid source site %s"%arg
-                print_help()
-                sys.exit(2)
+                end_error("ERROR - Invalid source site %s"%arg)
             src_site = arg
         elif opt == '-D':
             if (not arg in SITE_LIST):
-                print "ERROR - Invalid destination site %s"%arg
-                print_help()
-                sys.exit(2)
+                end_error("ERROR - Invalid destination site %s"%arg)
             dst_site = arg
         elif opt == '-s':
-            if (not arg in DAQ_SERVERS):
-                print "ERROR - Invalid DAQ data server %s"%arg
-                print_help()
-                sys.exit(2)
-            daq_srv = arg
+            src_dir = arg
+        elif opt == '-d':
+            dst_dir = arg
         elif opt == '-Y':
             year = arg
         elif opt == '-c':
@@ -221,38 +192,61 @@ def main(argv):
             verbose += 1
 
     if (not run):
-        print "ERROR - No run name specified"
-        print_help()
-        sys.exit(2)
+        end_error("ERROR - No run name specified")
 
     if (not year):
         m = re.match("run_\d+_(\d\d\d\d)\d\d\d\d_\d\d\d\d\d\d",run)
         if m:
             year = m.group(1)
         else:
-            print "ERROR - No year specified and unable to extract year from run name %s"%run
-            print_help()
-            sys.exit(2)
+            end_error("ERROR - No year specified and unable to extract year from run name %s"%run)
+
+    if (src_site == "LOCAL"):
+        if (src_dir == ""):
+            print "WARNING: source is LOCAL but no dir specified. Using current directory"
+            src_dir = "."
+
+    if (dst_site == "LOCAL"):
+        if (dst_dir == ""):
+            print "WARNING: destination is LOCAL but no dir specified. Using current directory"
+            dst_dir = "."
+
+    if (src_site == "DAQ"):
+        if (src_dir == ""):
+            end_error("ERROR - Source site is DAQ but data server was not specified")
+        elif (not src_dir in DAQ_SERVERS):
+           end_error("ERROR - Source site is DAQ but data server %s is unknown"%src_dir)
+
+    if (dst_site == "DAQ"):
+        if (dst_dir == ""):
+            end_error("ERROR - Destination site is DAQ but data server was not specified")
+        elif (not dst_dir in DAQ_SERVERS):
+            end_error("ERROR - Destination site is DAQ but data server %s is unknown"%dst_dir)
 
     if (src_site == dst_site):
-        print "ERROR - Source and destination sites are the same: %s and %s"%(src_site,dst_site)
-        print_help()
-        sys.exit(2)
-
-    if ( (src_site == "DAQ" or dst_site == "DAQ") and daq_srv == "" ):
-        print "ERROR - One site is DAQ but no data server specified"
-        print_help()
-        sys.exit(2)
+        if (src_site == "LOCAL"):
+            if (src_dir == dst_dir):
+               end_error("ERROR - Source and destination sites are LOCAL and directories are the same: %s and %s"%(src_dir,dst_dir))
+        elif (src_site == "DAQ"):
+            if (src_dir == dst_dir):
+                end_error("ERROR - Source and destination sites are DAQ and data servers are the same: %s and %s"%(src_dir,dst_dir))
+        else:
+            end_error("ERROR - Source and destination sites are the same: %s and %s"%(src_site,dst_site))
 
     if ( (src_site == "KLOE" or dst_site == "KLOE") and checksum ):
         print "WARNING - KLOE site does not support checksum verification: switching checksum off"
         checksum = False
 
+    # This can be fixed by using adler32 from padme-cdr
+    if ( (src_site == "LOCAL" or dst_site == "LOCAL") and checksum ):
+        print "WARNING - LOCAL site does not support checksum verification: switching checksum off"
+        checksum = False
+
     # Define string to use to respresent sites
     src_string = src_site
-    if (src_site == "DAQ"): src_string += "(%s)"%daq_srv
+    if (src_site == "DAQ"): src_string += "(%s)"%src_dir
     dst_string = dst_site
-    if (dst_site == "DAQ"): dst_string += "(%s)"%daq_srv
+    if (dst_site == "DAQ"): dst_string += "(%s)"%dst_dir
 
     if verbose:
         print
@@ -262,15 +256,19 @@ def main(argv):
 
     # Get list of files at source site
     if (src_site == "DAQ"):
-        (src_missing,src_file_list,src_file_size) = get_file_list_daq(run,year,daq_srv)
+        (src_missing,src_file_list,src_file_size) = get_file_list_daq(run,year,src_dir)
     elif (src_site == "LNF"):
-        (src_missing,src_file_list,src_file_size) = get_file_list_lnf(run,year)
+        (src_missing,src_file_list,src_file_size) = get_file_list_srm(run,year,LNF_SRM)
     elif (src_site == "LNF2"):
-        (src_missing,src_file_list,src_file_size) = get_file_list_lnf2(run,year)
+        (src_missing,src_file_list,src_file_size) = get_file_list_srm(run,year,LNF2_SRM)
     elif (src_site == "CNAF"):
-        (src_missing,src_file_list,src_file_size) = get_file_list_cnaf(run,year)
+        (src_missing,src_file_list,src_file_size) = get_file_list_srm(run,year,CNAF_SRM)
+    elif (src_site == "CNAF2"):
+        (src_missing,src_file_list,src_file_size) = get_file_list_srm(run,year,CNAF2_SRM)
     elif (src_site == "KLOE"):
         (src_missing,src_file_list,src_file_size) = get_file_list_kloe(run,year)
+    elif (src_site == "LOCAL"):
+        (src_missing,src_file_list,src_file_size) = get_file_list_local(run,year,src_dir)
     if verbose:
         if src_missing:
             print "%s - at %-13s run %s is missing"%(now_str(),src_string,run)
@@ -279,15 +277,19 @@ def main(argv):
 
     # Get list of files at destination site
     if (dst_site == "DAQ"):
-        (dst_missing,dst_file_list,dst_file_size) = get_file_list_daq(run,year,daq_srv)
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_daq(run,year,dst_dir)
     elif (dst_site == "LNF"):
-        (dst_missing,dst_file_list,dst_file_size) = get_file_list_lnf(run,year)
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_srm(run,year,LNF_SRM)
     elif (dst_site == "LNF2"):
-        (dst_missing,dst_file_list,dst_file_size) = get_file_list_lnf2(run,year)
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_srm(run,year,LNF2_SRM)
     elif (dst_site == "CNAF"):
-        (dst_missing,dst_file_list,dst_file_size) = get_file_list_cnaf(run,year)
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_srm(run,year,CNAF_SRM)
+    elif (dst_site == "CNAF2"):
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_srm(run,year,CNAF2_SRM)
     elif (dst_site == "KLOE"):
         (dst_missing,dst_file_list,dst_file_size) = get_file_list_kloe(run,year)
+    elif (dst_site == "LOCAL"):
+        (dst_missing,dst_file_list,dst_file_size) = get_file_list_local(run,year,dst_dir)
     if verbose:
         if dst_missing:
             print "%s - at %-13s run %s is missing"%(now_str(),dst_string,run)
@@ -347,24 +349,28 @@ def main(argv):
                 # Get checksum at source site
                 src_checksum = ""
                 if (src_site == "DAQ"):
-                    src_checksum = get_checksum_daq("%s/%s"%(run,rawfile),year,daq_srv)
+                    src_checksum = get_checksum_daq("%s/%s"%(run,rawfile),year,src_dir)
                 elif (src_site == "LNF"):
-                    src_checksum = get_checksum_lnf("%s/%s"%(run,rawfile),year)
+                    src_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,LNF_SRM)
                 elif (src_site == "LNF2"):
-                    src_checksum = get_checksum_lnf("%s/%s"%(run,rawfile),year)
+                    src_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,LNF2_SRM)
                 elif (src_site == "CNAF"):
-                    src_checksum = get_checksum_cnaf("%s/%s"%(run,rawfile),year)
+                    src_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,CNAF_SRM)
+                elif (src_site == "CNAF2"):
+                    src_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,CNAF2_SRM)
 
                 # Get checksum at destination site
                 dst_checksum = ""
                 if (dst_site == "DAQ"):
-                    dst_checksum = get_checksum_daq("%s/%s"%(run,rawfile),year,daq_srv)
+                    dst_checksum = get_checksum_daq("%s/%s"%(run,rawfile),year,dst_dir)
                 elif (dst_site == "LNF"):
-                    dst_checksum = get_checksum_lnf("%s/%s"%(run,rawfile),year)
+                    dst_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,LNF_SRM)
                 elif (dst_site == "LNF2"):
-                    dst_checksum = get_checksum_lnf("%s/%s"%(run,rawfile),year)
+                    dst_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,LNF2_SRM)
                 elif (dst_site == "CNAF"):
-                    dst_checksum = get_checksum_cnaf("%s/%s"%(run,rawfile),year)
+                    dst_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,CNAF_SRM)
+                elif (dst_site == "CNAF2"):
+                    dst_checksum = get_checksum_srm("%s/%s"%(run,rawfile),year,CNAF2_SRM)
 
                 # Check if checksums are consistent
                 if (src_checksum == "" and dst_checksum == ""):

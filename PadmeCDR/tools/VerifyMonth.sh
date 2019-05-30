@@ -8,8 +8,27 @@ Available destination sites: CNAF LNF LNF2 KLOE
 Default: verify CNAF vs LNF
 EOF
 
-# Path to VerifyRun script to use
-verify="${HOME}/cdr/padme-fw/PadmeCDR/tools/VerifyRun.py"
+# Find where this script is really located: needed to find the corresponding VerifyRun.py script
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+VERIFYRUN=$DIR/VerifyRun.py
+if ! [[ -e $VERIFYRUN ]]; then
+    echo "ERROR - $VERIFYRUN does not exist"
+    usage
+fi
+if ! [[ -f $VERIFYRUN ]]; then
+    echo "ERROR - $VERIFYRUN is not a regular file"
+    usage
+fi
+if ! [[ -x $VERIFYRUN ]]; then
+    echo "ERROR - $VERIFYRUN is not executable"
+    usage
+fi
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage systems
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
@@ -84,4 +103,4 @@ do
 	run_list+=("$run")
     done
 done
-parallel $verify -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
