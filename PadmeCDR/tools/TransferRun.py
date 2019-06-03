@@ -218,7 +218,7 @@ def main(argv):
     if (dst_site == "DAQ" or dst_site == "LOCAL"): dst_string += "(%s)"%dst_dir
 
     print
-    print "%s === TransferRun %s from %s to %s ==="%(now_str(),run,src_string,dst_string)
+    print "%s === TransferRun - copying run %s from %s to %s ==="%(now_str(),run,src_string,dst_string)
 
     file_list = get_file_list(run,src_site,src_dir)
     if file_list[0] == "error": end_error("ERROR - Unable to get list of files for run %s from %s"%(run,src_string))
@@ -233,7 +233,8 @@ def main(argv):
     #print "> %s"%cmd
     for line in run_command(cmd): print line.rstrip()
 
-    print "%s - Run %s copied"%(now_str(),run)
+    print
+    print "%s === TransferRun - finished copy of run %s ==="%(now_str(),run)
 
 # Execution starts here
 if __name__ == "__main__":
