@@ -298,11 +298,11 @@ def main(argv):
 
     if (src_missing or dst_missing):
         if (src_missing and dst_missing):
-            print "=== WARNING: Run %s is missing at %s and %s ==="%(run,src_string,dst_string)
+            print "=== Run %s - WARNING: missing at %s and %s ==="%(run,src_string,dst_string)
         elif src_missing:
-            print "=== WARNING: Run %s is missing at %s ==="%(run,src_string)
+            print "=== Run %s - WARNING: missing at %s ==="%(run,src_string)
         elif dst_missing:
-            print "=== WARNING: Run %s is missing at %s ==="%(run,dst_string)
+            print "=== Run %s - WARNING: missing at %s ==="%(run,dst_string)
         sys.exit()
 
     if (len(src_file_list) != len(dst_file_list)):
@@ -405,9 +405,9 @@ def main(argv):
             if  miss_chksum_src: report += " - %s: %d no checksum"%(src_string,miss_chksum_src)
             if  miss_chksum_dst: report += " - %s: %d no checksum"%(dst_string,miss_chksum_dst)
             if  wrong_checksum: report += " - %d wrong checksum"%wrong_checksum
-        print "=== WARNING: Run %s DOES NOT MATCH between %s and %s%s ==="%(run,src_string,dst_string,report)
+        print "=== Run %s - WARNING: NO MATCH between %s and %s%s ==="%(run,src_string,dst_string,report)
     else:
-        print "=== Run %s matches between %s and %s ==="%(run,src_string,dst_string)
+        print "=== Run %s - Successful match between %s and %s ==="%(run,src_string,dst_string)
 
 def run_command(command):
     #print "> %s"%command
