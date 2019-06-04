@@ -402,8 +402,8 @@ def start_monitor():
         now_time = time.time()
 
         mh = open("/tmp/%s"%monitor_file,"w")
-        mh.write("PLOTID CDR_status\n")
-        mh.write("PLOTNAME PADME CDR Status - %s\n"%now_str())
+        mh.write("PLOTID CDR_status_1\n")
+        mh.write("PLOTNAME PADME CDR Online Status - %s UTC\n"%now_str())
         mh.write("PLOTTYPE activetext\n")
         mh.write("DATA [ ")
 
@@ -421,6 +421,25 @@ def start_monitor():
             append_timeline_info(daq_server,now_time,(daq_use,daq_tot,daq_opc))
 
             mh.write(",")
+
+        ### Get PADMEUI disk info ###
+        (pui_tot,pui_use,pui_avl,pui_opc) = get_pui_info()
+        pui_color = color_ok
+        if (int(pui_opc)>pui_level_warn): pui_color = color_warn
+        if (int(pui_opc)>pui_level_alarm): pui_color = color_alarm
+        mh.write("{\"title\":\"PADMEUI Disk\",\"current\":{\"value\":\"Used:%s GB of %s GB (%s%%)\",\"col\":\"%s\"}}"%(pui_use,pui_tot,pui_opc,pui_color))
+        append_timeline_info("padmeui",now_time,(pui_use,pui_tot,pui_opc))
+
+        #mh.write(",")
+
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_status_2\n")
+        mh.write("PLOTNAME PADME CDR Offline Status - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE activetext\n")
+        mh.write("DATA [ ")
 
         ### Get LNF disk system info ###
         lnf_disk_use = get_lnf_info()
@@ -487,16 +506,6 @@ def start_monitor():
         mh.write("{\"title\":\"KLOE Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc,kloe_disk_color))
         append_timeline_info("kloedisk",now_time,(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc))
 
-        mh.write(",")
-
-        ### Get PADMEUI disk info ###
-        (pui_tot,pui_use,pui_avl,pui_opc) = get_pui_info()
-        pui_color = color_ok
-        if (int(pui_opc)>pui_level_warn): pui_color = color_warn
-        if (int(pui_opc)>pui_level_alarm): pui_color = color_alarm
-        mh.write("{\"title\":\"PADMEUI Disk\",\"current\":{\"value\":\"Used:%s GB of %s GB (%s%%)\",\"col\":\"%s\"}}"%(pui_use,pui_tot,pui_opc,pui_color))
-        append_timeline_info("padmeui",now_time,(pui_use,pui_tot,pui_opc))
-
         #mh.write(",")
 
         mh.write(" ]\n")
@@ -504,7 +513,7 @@ def start_monitor():
         mh.write("\n")
 
         mh.write("PLOTID CDR_DAQ_timeline\n")
-        mh.write("PLOTNAME PADME CDR - DAQ Servers - %s\n"%now_str())
+        mh.write("PLOTNAME PADME CDR - DAQ Servers - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
@@ -523,7 +532,7 @@ def start_monitor():
         mh.write("\n")
 
         mh.write("PLOTID CDR_Tape_timeline\n")
-        mh.write("PLOTNAME PADME CDR - Storage - %s\n"%now_str())
+        mh.write("PLOTNAME PADME CDR - Storage - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
@@ -560,4 +569,3 @@ def now_str():
 # Execution starts here
 if __name__ == "__main__":
    main(sys.argv[1:])
-
