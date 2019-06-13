@@ -32,6 +32,9 @@ LNF2_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/ho
 CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
 CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 
+# Timeout for gfal-ls and gfal-sum commands (in seconds)
+GFAL_TIMEOUT = 600
+
 def print_help():
     print 'VerifyRun -R run_name [-S src_site] [-D dst_site] [-s src_dir] [-d dst_dir] [-Y year] [-c] [-v] [-h]'
     print '  -R run_name     Name of run to verify'
@@ -54,12 +57,16 @@ def end_error(msg):
 def get_checksum_srm(file,year,srm):
     a32 = ""
     path = "/daq/%s/rawdata/%s"%(year,file)
-    cmd = "gfal-sum %s%s adler32"%(srm,path);
+    cmd = "gfal-sum -t %d %s%s adler32"%(GFAL_TIMEOUT,srm,path);
     for line in run_command(cmd):
-        try:
-            (fdummy,a32) = line.rstrip().split()
-        except:
-            a32 = ""
+        m = re.match("^gfal-sum error: (\d+) \((.*)\) - ",line)
+        if (m):
+            err_code = m.group(1)
+            err_msg = m.group(2)
+            print line.rstrip()                
+            break
+        m = re.match("^\s*\S+\s+(\S+)\s*$",line.rstrip())
+        if (m): a32 = m.group(1)
     return a32
 
 def get_checksum_daq(file,year,server):
@@ -117,9 +124,13 @@ def get_file_list_srm(run,year,srm):
     file_size = {}
     missing = False
     run_dir = "/daq/%s/rawdata/%s"%(year,run)
-    cmd = "gfal-ls -l %s%s"%(srm,run_dir)
+    cmd = "gfal-ls -t %d -l %s%s"%(GFAL_TIMEOUT,srm,run_dir)
     for line in run_command(cmd):
-        if ( re.match("^gfal-ls error: ",line) ):
+        m = re.match("^gfal-ls error:\s+(\d+)\s+\((.*)\) - ",line)
+        if (m):
+            err_code = m.group(1)
+            err_msg = m.group(2)
+            if (err_code != "2"): print line.rstrip()                
             missing = True
             break
         m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
