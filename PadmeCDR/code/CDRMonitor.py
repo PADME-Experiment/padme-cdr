@@ -138,7 +138,11 @@ cnaf_tape_tot_TB = 500.
 cnaf2_summary_file = "/home/%s/du-padme/cnaf2_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-cnaf2_disk_tot_TB = 100.
+cnaf2_disk_tot_TB = 60.
+
+# Warning and alarm levels (in %) for KLOE disk servers
+cnaf2_level_warn = 60
+cnaf2_level_alarm = 85
 
 ##############################
 ### KLOE tape library data ###
@@ -479,7 +483,9 @@ def start_monitor():
         cnaf2_disk_use_TB = float(cnaf2_disk_use)/1024/1024/1024/1024
         cnaf2_disk_opc = str(int(100.*cnaf2_disk_use_TB/cnaf2_disk_tot_TB))
         cnaf2_disk_color = color_ok
-        if cnaf2_disk_use_TB > cnaf2_disk_tot_TB: cnaf2_disk_color = color_warn
+        #if cnaf2_disk_use_TB > cnaf2_disk_tot_TB: cnaf2_disk_color = color_warn
+        if (int(cnaf2_disk_opc)>cnaf2_level_warn):  cnaf2_disk_color = color_warn
+        if (int(cnaf2_disk_opc)>cnaf2_level_alarm): cnaf2_disk_color = color_alarm
         mh.write("{\"title\":\"CNAF Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc,cnaf2_disk_color))
         append_timeline_info("cnafdisk",now_time,(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc))
 
@@ -501,8 +507,8 @@ def start_monitor():
         kloe_disk_avl_TB = float(kloe_disk_avl)/1024/1024
         kloe_disk_use_TB = kloe_disk_tot_TB-kloe_disk_avl_TB
         kloe_disk_color = color_ok
-        if (int(kloe_disk_opc)>daq_level_warn):  kloe_disk_color = color_warn
-        if (int(kloe_disk_opc)>daq_level_alarm): kloe_disk_color = color_alarm
+        if (int(kloe_disk_opc)>kloe_level_warn):  kloe_disk_color = color_warn
+        if (int(kloe_disk_opc)>kloe_level_alarm): kloe_disk_color = color_alarm
         mh.write("{\"title\":\"KLOE Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc,kloe_disk_color))
         append_timeline_info("kloedisk",now_time,(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc))
 

@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+import shlex
 import getopt
 import subprocess
 
@@ -66,7 +67,8 @@ def end_error(msg):
 
 def run_command(command):
     #print "> %s"%command
-    p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
+    #p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
+    p = subprocess.Popen(shlex.split(command),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
 def now_str():
@@ -103,7 +105,7 @@ def get_file_list_srm(run,site):
     for line in run_command(cmd):
         if re.match("^gfal-ls error: ",line):
             print line.rstrip()
-            print "***ERROR*** gfal-ls returned error status while retrieving file list from %s%s"%(SRC[site],run_path)
+            print "***ERROR*** gfal-ls returned error status while retrieving file list from %s%s"%(SRM[site],run_path)
             return ["error"]
         file_list.append(line.rstrip())
     file_list.sort()
