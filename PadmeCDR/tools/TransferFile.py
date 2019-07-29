@@ -135,11 +135,20 @@ def get_path_kloe(filename):
 
 def get_size_srm(filepath,site):
     size = ""
-    cmd = "gfal-ls -l %s%s"%(SRM[site],filepath)
+    #cmd = "gfal-ls -l %s%s"%(SRM[site],filepath)
+    cmd = "gfal-stat %s%s"%(SRM[site],filepath)
     for line in run_command(cmd):
-        print "    %s"%line.rstrip()
-        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
-        if (m): size = m.group(1)
+        #print "    %s"%line.rstrip()
+        if ( re.match("^gfal-stat error: ",line) or re.match("^Command timed out",line) ):
+            print "    %s"%line.rstrip()
+            break
+        m = re.match("^\s*Size:\s+(\d+)\s.*$",line.rstrip())
+        if (m):
+            print "    %s"%line.rstrip()
+            size = m.group(1)
+        #m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s*$",line.rstrip())
+        #if (m): size = m.group(1)
+    #print "get_size_srm - site %s file %s size is %s"%(site,filepath,size)
     return size
 
 def get_size_daq(filepath,server):

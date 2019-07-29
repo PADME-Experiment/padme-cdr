@@ -66,7 +66,8 @@ def end_error(msg):
 
 def run_command(command):
     #print "> %s"%command
-    p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
+    #p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
+    p = subprocess.Popen(command.split(),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
 def now_str():
