@@ -98,9 +98,13 @@ fi
 run_list=()
 for year in 2018 2019
 do
-    for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month} | sort)
+    for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
     do
 	run_list+=("$run")
     done
 done
-parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+if [ ${#run_list[@]} -eq 0 ]; then
+    echo "WARNING - No runs found on source site ${src_site} for month ${month}."
+else
+    parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+fi
