@@ -124,8 +124,8 @@ class PadmeCDRServer:
         ###################################
 
         self.site_srm = {
-            #"LNF" : "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org/daq",
-            "LNF" : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org/daq",
+            "LNF" : "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org/daq",
+            #"LNF" : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org/daq",
             "CNAF": "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape/daq"
         }
 
