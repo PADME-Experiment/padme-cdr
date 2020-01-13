@@ -69,6 +69,7 @@ if [[ -z $month ]]; then
     echo "$usage" 1>&2
     exit 1
 fi
+year=${month:0:4}
 
 # Define full URI of source run directory
 if [[ $src_site = "CNAF" ]]; then
@@ -95,13 +96,18 @@ if [[ $src_site = $dst_site ]]; then
     exit 1
 fi
 
+#run_list=()
+#for year in 2018 2019 2020
+#do
+#    for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
+#    do
+#	run_list+=("$run")
+#    done
+#done
 run_list=()
-for year in 2018 2019
+for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
 do
-    for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
-    do
-	run_list+=("$run")
-    done
+    run_list+=("$run")
 done
 if [ ${#run_list[@]} -eq 0 ]; then
     echo "WARNING - No runs found on source site ${src_site} for month ${month}."

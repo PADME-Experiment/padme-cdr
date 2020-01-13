@@ -37,7 +37,7 @@ daq_user="daq"
 daq_keyfile="/home/${USER}/.ssh/id_rsa_cdr"
 daq_path="/data/DAQ"
 dst_site="CNAF"
-year="2019"
+year="$( date +%Y )"
 
 while getopts ":D:y:h" o; do
     case "${o}" in
@@ -57,9 +57,9 @@ if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]]; then
     echo "ERROR - Destination site can only be CNAF or LNF"
 fi
 
-if [[ $year != "2018" ]] && [[ $year != "2019" ]]; then
-    echo "ERROR - DAQ year can only be 2018 or 2019"
-fi
+#if [[ $year != "2018" ]] && [[ $year != "2019" ]] && [[ $year != "2020" ]]; then
+#    echo "ERROR - DAQ year can only be 2018, 2019, or 2020"
+#fi
 
 # Get list of runs on DAQ servers for given year and verify each of them
 for srv in "${srv_list[@]}"; do
