@@ -18,7 +18,7 @@ while os.path.islink(thisscript): thisscript = os.readlink(thisscript)
 SCRIPT_DIR,SCRIPT_FILE = os.path.split(os.path.abspath(thisscript))
 #print SCRIPT_PATH,SCRIPT_NAME,SCRIPT_DIR,SCRIPT_FILE
 
-# Define correct path to TranferFile script
+# Define correct path to CopyFile script
 COPYFILE = "%s/CopyFile.py"%SCRIPT_DIR
 
 # Create global handler to PadmeMCDB
@@ -94,7 +94,8 @@ def get_file_list_srm(site,prod_dir):
     (rc,out,err) = execute_command(cmd)
     if rc == 0:
         for line in iter(out.splitlines()):
-            file_list.append("%s/%s"%(prod_dir,line))
+            #file_list.append("%s/%s"%(prod_dir,line))
+            file_list.append(line)
     else:
         print "WARNING Unable to retrieve list of files in %s from %s at %s"%(prod_dir,SRM[site],site)
         if out: print "- STDOUT -\n%s"%out,
@@ -107,7 +108,8 @@ def get_file_list_local(top_dir,prod_dir):
     (rc,out,err) = execute_command(cmd)
     if rc == 0:
         for line in iter(out.splitlines()):
-            file_list.append("%s/%s"%(prod_dir,line))
+            #file_list.append("%s/%s"%(prod_dir,line))
+            file_list.append(line)
     else:
         print "WARNING Unable to retrieve list of LOCAL files in %s%s"%(top_dir,prod_dir)
         if out: print "- STDOUT -\n%s"%out,
@@ -221,7 +223,8 @@ def main(argv):
     if src_dir: cmd += " -s %s"%src_dir
     if dst_dir: cmd += " -d %s"%dst_dir
     cmd += " :::"
-    for f in copy_file_list: cmd += " %s"%f
+    #for f in copy_file_list: cmd += " %s"%f
+    for f in copy_file_list: cmd += " %s/%s"%(prod_dir,f)
     #print "> %s"%cmd
     for line in run_command(cmd): print line.rstrip()
 
