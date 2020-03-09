@@ -48,9 +48,8 @@ def end_error(msg):
     print_help()
     sys.exit(2)
 
-def get_checksum_srm(file,year,srm):
+def get_checksum_srm(path,srm):
     a32 = ""
-    path = "/daq/%s/rawdata/%s"%(year,file)
     cmd = "gfal-sum -t %d %s%s adler32"%(GFAL_TIMEOUT,srm,path);
     for line in run_command(cmd):
         m = re.match("^gfal-sum error: (\d+) \((.*)\) - ",line)
@@ -101,7 +100,7 @@ def get_file_list_srm(prod_dir,srm):
             file_size[m.group(2)] = int(m.group(1))
     return (missing,file_list,file_size)
 
-def get_file_list_kloe(prod_dir,year):
+def get_file_list_kloe(prod_dir):
     file_list = []
     file_size = {}
     missing = False
@@ -254,10 +253,10 @@ def main(argv):
                     miss_chksum_src += 1
                     warnings += 1
                     if verbose: print "%s - unable to get checksum at %s"%(rawfile,src_site)
-                elif (src_checksum != checksum[rawfile]):
+                elif (src_checksum != prod_file_checksum[rawfile]):
                     wrong_checksum += 1
                     warnings += 1
-                    if verbose: print "%s - wrong checksum: expect %s but %s found at %s"%(rawfile,checksum[rawfile],src_checksum,src_site)
+                    if verbose: print "%s - wrong checksum: expect %s but %s found at %s"%(rawfile,prod_file_checksum[rawfile],src_checksum,src_site)
                 else:
                     if (verbose > 1): print "%s - OK - size %10d checksum %8s"%(rawfile,src_file_size[rawfile],src_checksum)
 
@@ -273,7 +272,7 @@ def main(argv):
             if  wrong_checksum: report += " - %d wrong checksum"%wrong_checksum
         print "=== Production %s - WARNING: CHECK FAILED at %s%s ==="%(prod,src_site,report)
     else:
-        print "=== Production %s - Successful check at %s ==="%(run,src_site)
+        print "=== Production %s - Successful check at %s ==="%(prod,src_site)
 
 def run_command(command):
     #print "> %s"%command
