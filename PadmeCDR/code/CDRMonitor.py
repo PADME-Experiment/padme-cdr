@@ -314,16 +314,30 @@ def get_cnaf2_info():
 
 def append_timeline_info(storage,now,data_list):
     with open(timeline_file[storage],"a") as tlf:
-        tlf.write("%s"%now)
+        tlf.write("%.2f"%now)
         for d in data_list: tlf.write(" %s"%d)
         tlf.write("\n")
 
-def format_timeline_info(storage,mode):
+def format_timeline_info(storage,mode,period):
 
     old_date = "0."
     old_used = "0."
     old_free = "0."
     old_percent = "0."
+
+    if period == "FULL":
+        start_date = 0.
+    elif period == "DAY":
+        start_date = time.time()-86400.
+    elif period == "WEEK":
+        start_date = time.time()-86400.*7
+    elif period == "MONTH":
+        start_date = time.time()-86400.*30
+    elif period == "YEAR":
+        start_date = time.time()-86400.*365
+    else:
+        print "- WARNING - Unknown period \"%s\" requested for timeline. Defaulting to \"FULL\"."%period
+        start_date = "0."
 
     fmt = "["
     first = True
@@ -339,6 +353,13 @@ def format_timeline_info(storage,mode):
                 new_free = str(float(m.group(3))-float(m.group(2)))
                 new_percent = m.group(4)
                 #print "%s %s ### %s %s ### %s %s ### %s %s"%(old_date,new_date,old_used,new_used,old_free,new_free,old_percent,new_percent)
+
+                # Check if this point should be included in the plot
+                try:
+                    new_date_f = float(new_date)
+                except ValueError:
+                    new_date_f = 0.
+                if new_date_f < start_date: continue
 
                 # Do not prepend a comma before first value in list
                 if first:
@@ -528,11 +549,11 @@ def start_monitor():
         mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" ]\n")
         mh.write("DATA [ ")
-        mh.write(format_timeline_info("l1padme3","PERCENT"))
+        mh.write(format_timeline_info("l1padme3","PERCENT","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("l1padme4","PERCENT"))
+        mh.write(format_timeline_info("l1padme4","PERCENT","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("l0padme1","PERCENT"))
+        mh.write(format_timeline_info("l0padme1","PERCENT","FULL"))
         mh.write(" ]\n")
 
         mh.write("\n")
@@ -543,19 +564,187 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
         mh.write("RANGE_Y 0. 500.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n , \"lines\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
         mh.write("DATA [ ")
-        mh.write(format_timeline_info("lnfdisk","USED"))
+        mh.write(format_timeline_info("lnfdisk","USED","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("lnf2disk","USED"))
+        mh.write(format_timeline_info("lnf2disk","USED","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("cnaftape","USED"))
+        mh.write(format_timeline_info("cnaftape","USED","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("cnafdisk","USED"))
+        mh.write(format_timeline_info("cnafdisk","USED","FULL"))
         mh.write(" , ")
-        mh.write(format_timeline_info("kloetape","USED"))
+        mh.write(format_timeline_info("kloetape","USED","FULL"))
+        mh.write("]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_DAQ_timeline_DAY\n")
+        mh.write("PLOTNAME PADME CDR - DAQ Servers - Daily - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(%)\n")
+        mh.write("RANGE_Y 0. 100.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("l1padme3","PERCENT","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l1padme4","PERCENT","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme1","PERCENT","DAY"))
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_Tape_timeline_DAY\n")
+        mh.write("PLOTNAME PADME CDR - Storage - Daily - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(TB)\n")
+        mh.write("RANGE_Y 0. 500.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("lnfdisk","USED","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("lnf2disk","USED","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnaftape","USED","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnafdisk","USED","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("kloetape","USED","DAY"))
+        mh.write("]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_DAQ_timeline_WEEK\n")
+        mh.write("PLOTNAME PADME CDR - DAQ Servers - Weekly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(%)\n")
+        mh.write("RANGE_Y 0. 100.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("l1padme3","PERCENT","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l1padme4","PERCENT","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme1","PERCENT","WEEK"))
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_Tape_timeline_WEEK\n")
+        mh.write("PLOTNAME PADME CDR - Storage - Weekly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(TB)\n")
+        mh.write("RANGE_Y 0. 500.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("lnfdisk","USED","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("lnf2disk","USED","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnaftape","USED","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnafdisk","USED","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("kloetape","USED","WEEK"))
+        mh.write("]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_DAQ_timeline_MONTH\n")
+        mh.write("PLOTNAME PADME CDR - DAQ Servers - Monthly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(%)\n")
+        mh.write("RANGE_Y 0. 100.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("l1padme3","PERCENT","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l1padme4","PERCENT","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme1","PERCENT","MONTH"))
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_Tape_timeline_MONTH\n")
+        mh.write("PLOTNAME PADME CDR - Storage - Monthly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(TB)\n")
+        mh.write("RANGE_Y 0. 500.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("lnfdisk","USED","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("lnf2disk","USED","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnaftape","USED","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnafdisk","USED","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("kloetape","USED","MONTH"))
+        mh.write("]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_DAQ_timeline_YEAR\n")
+        mh.write("PLOTNAME PADME CDR - DAQ Servers - Yearly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(%)\n")
+        mh.write("RANGE_Y 0. 100.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("l1padme3","PERCENT","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l1padme4","PERCENT","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme1","PERCENT","YEAR"))
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_Tape_timeline_YEAR\n")
+        mh.write("PLOTNAME PADME CDR - Storage - Yearly - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y Occupation(TB)\n")
+        mh.write("RANGE_Y 0. 500.\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
+        mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
+        mh.write("DATA [ ")
+        mh.write(format_timeline_info("lnfdisk","USED","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("lnf2disk","USED","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnaftape","USED","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("cnafdisk","USED","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("kloetape","USED","YEAR"))
         mh.write("]\n")
 
         mh.close()
