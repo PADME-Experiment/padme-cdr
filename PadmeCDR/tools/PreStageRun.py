@@ -7,9 +7,8 @@ import time
 import getopt
 import subprocess
 
-SRC_SITE_LIST = [ "LNF", "CNAF" ]
+SRC_SITE_LIST = [ "CNAF" ]
 
-LNF_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
 CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
 
 def print_help():
@@ -108,9 +107,7 @@ def main(argv):
             sys.exit(2)
 
     # Define source and destination SRMs
-    if (src_site == "LNF"):
-        src_srm = LNF_SRM
-    elif (src_site == "CNAF"):
+    if (src_site == "CNAF"):
         src_srm = CNAF_SRM
 
     # Source dir is always the official directory for all runs of given year

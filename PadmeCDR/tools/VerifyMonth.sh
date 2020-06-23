@@ -32,8 +32,10 @@ fi
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage systems
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
-srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+#srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
+#srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
+srm_lnf2="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 
 src_site="CNAF"
 dst_site="LNF"
@@ -96,14 +98,6 @@ if [[ $src_site = $dst_site ]]; then
     exit 1
 fi
 
-#run_list=()
-#for year in 2018 2019 2020
-#do
-#    for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
-#    do
-#	run_list+=("$run")
-#    done
-#done
 run_list=()
 for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
 do

@@ -27,8 +27,10 @@ KLOE_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
 DAQ_ADLER32_CMD = "/home/daq/DAQ/tools/adler32"
 
 # SRM addresses for storage elements at LNF and CNAF
-LNF_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
-LNF2_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+#LNF_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
+#LNF2_SRM = "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+LNF_SRM = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
+LNF2_SRM = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
 CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 

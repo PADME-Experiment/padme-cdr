@@ -1,8 +1,9 @@
 #!/bin/bash
 
 usage() {
+    year="$( date +%Y )"
     echo "Usage: $0 [-D dst_site] [-y year] [-h]" 1>&2
-    echo "Default: compare content of year 2019 on DAQ servers with CNAF" 1>&2
+    echo "Default: compare content of year $year on DAQ servers with CNAF" 1>&2
     exit 1
 }
 
@@ -30,7 +31,8 @@ fi
 
 # Define Storm access point to CNAF tape library and LNF storage system
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
+#srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
+srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
 
 srv_list=( "l1padme3" "l1padme4" )
 daq_user="daq"
