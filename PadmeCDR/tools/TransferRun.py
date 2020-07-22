@@ -227,7 +227,7 @@ def main(argv):
 
     print "%s - Start copying run %s (%d files)"%(now_str(),run,len(file_list))
 
-    cmd = "parallel -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
+    cmd = "parallel --delay 0.5s -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
     if src_dir: cmd += " -s %s"%src_dir
     if dst_dir: cmd += " -d %s"%dst_dir
     cmd += " :::"
