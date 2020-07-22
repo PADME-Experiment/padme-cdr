@@ -108,7 +108,7 @@ daq_level_alarm = 85
 lnf_summary_file = "/home/%s/du-padme/padme_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-lnf_disk_tot_TB = 180.
+lnf_disk_tot_TB = 280.
 
 ################################
 ### LNF2 disk occupation data ###

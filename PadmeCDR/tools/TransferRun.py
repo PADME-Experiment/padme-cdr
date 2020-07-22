@@ -32,8 +32,8 @@ DAQ_SERVERS = [ "l1padme3", "l1padme4" ]
 
 # SRM addresses
 SRM = {
-    "LNF"   : "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org",
-    "LNF2"  : "srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch",
+    "LNF"   : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org",
+    "LNF2"  : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch",
     "CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
     "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 }
@@ -50,7 +50,7 @@ VERBOSE = 0
 
 def print_help():
     print '%s -R run_name [-S src_site] [-D dst_site] [-s src_dir]  [-d dst_dir] [-j jobs] [-h]'%SCRIPT_NAME
-    print '  -R run_name     Name of run to recover'
+    print '  -R run_name     Name of run to transfer'
     print '  -S src_site     Source site. Default: %s'%SRC_DEFAULT
     print '  -D dst_site     Destination site. Default: %s'%DST_DEFAULT
     print '  -s src_dir      Path to data directory if source is LOCAL, name of data server if source is DAQ.'
@@ -227,7 +227,7 @@ def main(argv):
 
     print "%s - Start copying run %s (%d files)"%(now_str(),run,len(file_list))
 
-    cmd = "parallel -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
+    cmd = "parallel --delay 0.5s -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
     if src_dir: cmd += " -s %s"%src_dir
     if dst_dir: cmd += " -d %s"%dst_dir
     cmd += " :::"
