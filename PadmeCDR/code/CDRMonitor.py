@@ -103,6 +103,9 @@ daq_level_alarm = 85
 ### LNF disk occupation data ###
 ################################
 
+# URI to main PADME directory on LNF disk server
+lnf_uri = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
+
 # Path to file with summary occupation info
 #lnf_summary_file = "/home/%s/du-padme_dpm.ouput"%cdr_user
 lnf_summary_file = "/home/%s/du-padme/padme_spazio-occupato.output"%cdr_user
@@ -113,6 +116,9 @@ lnf_disk_tot_TB = 280.
 ################################
 ### LNF2 disk occupation data ###
 ################################
+
+# URI to main PADME directory on LNF2 disk server
+lnf2_uri = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 
 # Path to file with summary occupation info
 lnf2_summary_file = "/home/%s/du-padme/padme_scratch_spazio-occupato.output"%cdr_user
@@ -263,29 +269,46 @@ def get_kloe_info():
 def get_lnf_info():
 
     disk_use = "0"
+
     #cmd = "tail -2 %s"%lnf_summary_file
     #for line in run_command(cmd):
     #    rc = re.match("^\s*(\d+)B\s*$",line)
     #    if rc: disk_use = rc.group(1)
-    cmd = "tail -1 %s"%lnf_summary_file
+
+    #cmd = "tail -1 %s"%lnf_summary_file
+    #for line in run_command(cmd):
+    #    rc = re.match("^\s*(\d\d\d\d\d\d\d\d)_(\d\d\d\d)\s+(\d+)\s*$",line)
+    #    if rc:
+    #        read_date = rc.group(1)
+    #        read_time = rc.group(2)
+    #        disk_use = rc.group(3)
+
+    cmd = "gfal-ls -ld %s"%lnf_uri
     for line in run_command(cmd):
-        rc = re.match("^\s*(\d\d\d\d\d\d\d\d)_(\d\d\d\d)\s+(\d+)\s*$",line)
+        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
         if rc:
-            read_date = rc.group(1)
-            read_time = rc.group(2)
-            disk_use = rc.group(3)
+            disk_use = rc.group(1)
+
     return disk_use
 
 def get_lnf2_info():
 
     disk_use = "0"
-    cmd = "tail -1 %s"%lnf2_summary_file
+
+    #cmd = "tail -1 %s"%lnf2_summary_file
+    #for line in run_command(cmd):
+    #    rc = re.match("^\s*(\d\d\d\d\d\d\d\d)_(\d\d\d\d)\s+(\d+)\s*$",line)
+    #    if rc:
+    #        read_date = rc.group(1)
+    #        read_time = rc.group(2)
+    #        disk_use = rc.group(3)
+
+    cmd = "gfal-ls -ld %s"%lnf2_uri
     for line in run_command(cmd):
-        rc = re.match("^\s*(\d\d\d\d\d\d\d\d)_(\d\d\d\d)\s+(\d+)\s*$",line)
+        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
         if rc:
-            read_date = rc.group(1)
-            read_time = rc.group(2)
-            disk_use = rc.group(3)
+            disk_use = rc.group(1)
+
     return disk_use
 
 def get_cnaf_info():
