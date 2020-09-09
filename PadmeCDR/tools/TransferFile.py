@@ -425,7 +425,7 @@ def copy_file_srm_kloe(filename,src_site):
 
     # Now send local copy to KLOE temporary directory using good old scp
     tmp_file_kloe = "%s/%s"%(KLOE_TMPDIR,filename)
-    cmd = "scp -i %s %s %s@%s:%%s"%(KLOE_KEYFILE,tmp_file,KLOE_USER,KLOE_SERVER,tmp_file_kloe)
+    cmd = "scp -i %s %s %s@%s:%s"%(KLOE_KEYFILE,tmp_file,KLOE_USER,KLOE_SERVER,tmp_file_kloe)
     for line in run_command(cmd): print "    %s"%line.rstrip()
 
     # Clean up local temporary file
