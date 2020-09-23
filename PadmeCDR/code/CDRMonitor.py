@@ -654,7 +654,7 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
         mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
