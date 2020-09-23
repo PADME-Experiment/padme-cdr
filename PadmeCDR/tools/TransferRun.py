@@ -48,6 +48,9 @@ JOBS_DEFAULT = "20"
 # Verbose level (no messages by default)
 VERBOSE = 0
 
+# Delay between parallel job submissions
+PARALLEL_DELAY = "0.1s"
+
 def print_help():
     print '%s -R run_name [-S src_site] [-D dst_site] [-s src_dir]  [-d dst_dir] [-j jobs] [-h]'%SCRIPT_NAME
     print '  -R run_name     Name of run to transfer'
@@ -222,12 +225,32 @@ def main(argv):
     print
     print "%s === TransferRun - copying run %s from %s to %s ==="%(now_str(),run,src_string,dst_string)
 
-    file_list = get_file_list(run,src_site,src_dir)
-    if file_list[0] == "error": end_error("ERROR - Unable to get list of files for run %s from %s"%(run,src_string))
+    src_file_list = get_file_list(run,src_site,src_dir)
+    if len(src_file_list) == 0:
+        end_error("ERROR - Empty list of files for run %s from %s"%(run,src_string))
+    if src_file_list[0] == "error":
+        end_error("ERROR - Unable to get list of files for run %s from %s"%(run,src_string))
 
-    print "%s - Start copying run %s (%d files)"%(now_str(),run,len(file_list))
+    dst_file_list = get_file_list(run,dst_site,dst_dir)
 
-    cmd = "parallel --delay 0.5s -j %s %s -F {} -S %s -D %s"%(jobs,TRANSFERFILE,src_site,dst_site)
+    file_list = []
+    if (len(dst_file_list) == 0) or (dst_file_list[0] == "error"):
+        # Full run is missing at destination site: copy all
+        file_list = src_file_list
+    else:
+        # Run is already present at destination site: check if some files are missing
+        for f in src_file_list:
+            if not f in dst_file_list:
+                file_list.append(f)
+
+    # See if we need to copy any file
+    if not file_list:
+        print "%s === TransferRun - all files of run %s already present at destination ==="%(now_str(),run)
+        sys.exit()
+
+    print "%s - Start copying run %s (%d/%d files)"%(now_str(),run,len(file_list),len(src_file_list))
+
+    cmd = "parallel --delay %s -j %s %s -F {} -S %s -D %s"%(PARALLEL_DELAY,jobs,TRANSFERFILE,src_site,dst_site)
     if src_dir: cmd += " -s %s"%src_dir
     if dst_dir: cmd += " -d %s"%dst_dir
     cmd += " :::"

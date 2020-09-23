@@ -106,5 +106,13 @@ done
 if [ ${#run_list[@]} -eq 0 ]; then
     echo "WARNING - No runs found on source site ${src_site} for month ${month}."
 else
-    parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+    if [[ $dst_site != "KLOE" ]]; then
+	parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+    else
+	# KLOE site has problems with multiple ssh accesses: do not use parallel
+	for run in "${run_list[@]}"
+	do
+	    $VERIFYRUN -R $run -S $src_site -D $dst_site
+	done
+    fi
 fi
