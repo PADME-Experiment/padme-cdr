@@ -57,11 +57,8 @@ done
 
 if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]]; then
     echo "ERROR - Destination site can only be CNAF or LNF"
+    exit 2
 fi
-
-#if [[ $year != "2018" ]] && [[ $year != "2019" ]] && [[ $year != "2020" ]]; then
-#    echo "ERROR - DAQ year can only be 2018, 2019, or 2020"
-#fi
 
 # Get list of runs on DAQ servers for given year and verify each of them
 for srv in "${srv_list[@]}"; do

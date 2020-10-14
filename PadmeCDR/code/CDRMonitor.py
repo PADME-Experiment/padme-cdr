@@ -148,7 +148,7 @@ lnf2_disk_tot_TB = 100.
 cnaf_summary_file = "/home/%s/du-padme/cnaf_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-cnaf_tape_tot_TB = 500.
+cnaf_tape_tot_TB = 1780.
 
 #################################
 ### CNAF disk occupation data ###
@@ -158,7 +158,7 @@ cnaf_tape_tot_TB = 500.
 cnaf2_summary_file = "/home/%s/du-padme/cnaf2_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-cnaf2_disk_tot_TB = 60.
+cnaf2_disk_tot_TB = 90.
 
 # Warning and alarm levels (in %) for KLOE disk servers
 cnaf2_level_warn = 60
@@ -184,7 +184,7 @@ kloe_path = "/pdm"
 kloe_tape_app = "/pdm/bin/padme_sum"
 
 # Total available tape space in TB
-kloe_tape_tot_TB = 350.
+kloe_tape_tot_TB = 600.
 
 # Warning and alarm levels (in %) for KLOE disk servers
 kloe_level_warn = 60
