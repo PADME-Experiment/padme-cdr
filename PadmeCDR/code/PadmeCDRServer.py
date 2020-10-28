@@ -5,6 +5,7 @@ import sys
 import time
 import subprocess
 import re
+import shlex
 
 from Logger import Logger
 
@@ -302,13 +303,36 @@ class PadmeCDRServer:
 
         # First we get list of files currently on disk buffer
         cmd = "%s \'( cd %s/%s/%s; ls )\'"%(self.kloe_ssh,self.kloe_path,self.data_dir,run)
-        for line in self.run_command(cmd): file_list.append("%s/%s"%(run,line.rstrip()))
+        #for line in self.run_command(cmd): file_list.append("%s/%s"%(run,line.rstrip()))
+        (rc,out,err) = self.execute_command(cmd)
+        if rc != 0:
+            print "Error %d while accessing KLOE disk buffer"%rc
+            for line in iter(err.splitlines()): print line.rstrip()
+            return ["error",rc,err]
+        if err == "":
+            for line in iter(out.splitlines()):
+                file_list.append("%s/%s"%(run,line.rstrip()))
+        # If the directory is missing, just leave the list empty
+        elif not re.match("^.*: No such file or directory",err):
+            print "Error while accessing KLOE disk buffer"
+            for line in iter(err.splitlines()): print line.rstrip()
+            return ["error",rc,err]
 
         # Second we get list of files already stored on the tape library
         cmd = "%s \'( dsmc query archive %s/%s/%s/\*.root )\'"%(self.kloe_ssh,self.kloe_path,self.data_dir,run)
-        for line in self.run_command(cmd):
-            m = re_get_rawdata_file.match(line)
-            if (m): file_list.append(m.group(1))
+        #for line in self.run_command(cmd):
+        #    m = re_get_rawdata_file.match(line)
+        #    if (m): file_list.append(m.group(1))
+        (rc,out,err) = self.execute_command(cmd)
+        if rc == 0:
+            for line in iter(out.splitlines()):
+                m = re_get_rawdata_file.match(line)
+                if m: file_list.append(m.group(1))
+        # If no files are found (error 8), just leave the list empty
+        elif rc != 8:
+            print "Error %d while accessing KLOE tape library"%rc
+            for line in iter(err.splitlines()): print line.rstrip()
+            return ["error",rc,err]
 
         # Return list after removing duplicates and sorting
         file_list = sorted(set(file_list))
@@ -370,6 +394,12 @@ class PadmeCDRServer:
         print "> %s"%command
         p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
         return iter(p.stdout.readline,b'')
+
+    def execute_command(self,command):
+        print "> %s"%command
+        p = subprocess.Popen(shlex.split(command),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        (out,err) = p.communicate()
+        return (p.returncode,out,err)
 
     def check_stop_cdr(self):
         if (os.path.exists(self.stop_cdr_file)):
