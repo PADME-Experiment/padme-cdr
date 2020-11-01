@@ -142,15 +142,19 @@ def get_file_list_srm(run,year,srm):
     return (missing,file_list,file_size)
 
 def get_file_list_kloe(run,year):
+
     file_list = []
     file_size = {}
-    missing = False
+
     run_dir = "/data/DAQ/%s/rawdata/%s"%(year,run)
     kloe_ssh = "ssh -n -i %s -l %s %s"%(KLOE_KEYFILE,KLOE_USER,KLOE_SERVER)
+
+    # Get list of files on tape
+    missing_tape = False
     cmd = "%s \'( dsmc query archive /pdm/padme/daq/%s/rawdata/%s/\*.root )\'"%(kloe_ssh,year,run)
     for line in run_command(cmd):
         if ( re.match("^ANS1092W No files matching search criteria were found",line) ):
-            missing = True
+            missing_tape = True
             break
         #m = re.match("^\s*(\S+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s+.*$",line.rstrip())
         m = re.match("^\s*([0-9,]+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s+.*$",line.rstrip())
@@ -159,7 +163,31 @@ def get_file_list_kloe(run,year):
             file_name = os.path.basename(m.group(2))
             file_list.append(file_name)
             file_size[file_name] = int(m.group(1).replace(',',''))
-    return (missing,file_list,file_size)
+
+    # Get list of files on disk
+    missing_disk = False
+    n_files_on_disk = 0
+    cmd = "%s \'( cd /pdm/padme/daq/%s/rawdata/%s ; ls -l *.root )\'"%(kloe_ssh,year,run)
+    for line in run_command(cmd):
+        if ( re.match("^.* not found",line) or re.match("^.* No such file or directory.*$",line) ):
+            missing_disk = True
+            break
+        m = re.match("^\s*\S+\s+\S+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)\s*$",line.rstrip())
+        if (m):
+            #print "Match %s %s - %s\n"%(m.group(1),m.group(2),line.rstrip())
+            file_name = os.path.basename(m.group(2))
+            if file_name in file_list:
+                # File is both on tape and on disk: check if file size is consistent
+                if file_size[file_name] != int(m.group(1)):
+                    print "WARNING - File %s at KLOE both on disk and on tape with different file size - Tape: %d - Disk: %d"%(file_name,file_size[file_name],int(m.group(1)))
+            else:
+                n_files_on_disk += 1
+                file_list.append(file_name)
+                file_size[file_name] = int(m.group(1))
+
+    missing = (missing_tape and missing_disk)
+
+    return (missing,file_list,file_size,n_files_on_disk)
 
 def main(argv):
 
@@ -279,12 +307,14 @@ def main(argv):
     elif (src_site == "CNAF2"):
         (src_missing,src_file_list,src_file_size) = get_file_list_srm(run,year,CNAF2_SRM)
     elif (src_site == "KLOE"):
-        (src_missing,src_file_list,src_file_size) = get_file_list_kloe(run,year)
+        (src_missing,src_file_list,src_file_size,n_files_on_disk) = get_file_list_kloe(run,year)
     elif (src_site == "LOCAL"):
         (src_missing,src_file_list,src_file_size) = get_file_list_local(run,year,src_dir)
     if verbose:
         if src_missing:
             print "%s - at %-13s run %s is missing"%(now_str(),src_string,run)
+        elif (src_site == "KLOE") and n_files_on_disk:
+            print "%s - at %-13s run %s contains %d files (%d on disk)"%(now_str(),src_string,run,len(src_file_list),n_files_on_disk)
         else:
             print "%s - at %-13s run %s contains %d files"%(now_str(),src_string,run,len(src_file_list))
 
@@ -300,12 +330,14 @@ def main(argv):
     elif (dst_site == "CNAF2"):
         (dst_missing,dst_file_list,dst_file_size) = get_file_list_srm(run,year,CNAF2_SRM)
     elif (dst_site == "KLOE"):
-        (dst_missing,dst_file_list,dst_file_size) = get_file_list_kloe(run,year)
+        (dst_missing,dst_file_list,dst_file_size,n_files_on_disk) = get_file_list_kloe(run,year)
     elif (dst_site == "LOCAL"):
         (dst_missing,dst_file_list,dst_file_size) = get_file_list_local(run,year,dst_dir)
     if verbose:
         if dst_missing:
             print "%s - at %-13s run %s is missing"%(now_str(),dst_string,run)
+        elif (dst_site == "KLOE") and n_files_on_disk:
+            print "%s - at %-13s run %s contains %d files (%d on disk)"%(now_str(),dst_string,run,len(dst_file_list),n_files_on_disk)
         else:
             print "%s - at %-13s run %s contains %d files"%(now_str(),dst_string,run,len(dst_file_list))
 
