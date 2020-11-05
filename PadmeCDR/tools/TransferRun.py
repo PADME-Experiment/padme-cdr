@@ -116,7 +116,7 @@ def get_file_list_srm(run,site):
 
 def get_file_list_local(run,loc_dir):
     file_list = []
-    run_path = "%s/%s"(loc_dir,run)
+    run_path = "%s/%s"%(loc_dir,run)
     cmd = "ls %s"%run_path
     print "> %s"%cmd
     for line in run_command(cmd):

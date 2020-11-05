@@ -556,7 +556,9 @@ def copy_file_daq_local(filename,daq_server,dst_dir):
 
     src_filepath = get_path_daq(filename)
     dst_filepath = get_path_local(filename,dst_dir)
-    cmd = "scp -i %s %s@%s%s %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,src_filepath,dst_filepath)
+    cmd = "mkdir -p %s"%os.path.dirname(dst_filepath)
+    for line in run_command(cmd): print "    %s"%line.rstrip()
+    cmd = "scp -i %s %s@%s:%s %s"%(DAQ_KEYFILE,DAQ_USER,daq_server,src_filepath,dst_filepath)
     for line in run_command(cmd): print "    %s"%line.rstrip()
 
     # Compare source and destination
