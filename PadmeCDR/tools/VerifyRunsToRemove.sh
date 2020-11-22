@@ -55,8 +55,8 @@ while getopts ":D:y:h" o; do
     esac
 done
 
-if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]]; then
-    echo "ERROR - Destination site can only be CNAF or LNF"
+if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]] && [[ $dst_site != "KLOE" ]]; then
+    echo "ERROR - Destination site can only be CNAF, LNF or KLOE"
     exit 2
 fi
 

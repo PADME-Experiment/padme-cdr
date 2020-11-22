@@ -3,8 +3,8 @@
 # Prepare a variable with usage guidelines
 read -r -d '' usage <<EOF
 Usage: $0 -m month [-S src_site] [-D dst_site] [-j jobs] [-h]
-Available source sites: CNAF LNF LNF2
-Available destination sites: CNAF LNF LNF2 KLOE
+Available source sites: CNAF CNAF2 LNF LNF2
+Available destination sites: CNAF CNAF2 LNF LNF2 KLOE
 Default: verify CNAF vs LNF
 EOF
 
@@ -32,6 +32,7 @@ fi
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage systems
 srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+srm_cnaf2="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 #srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
 #srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
@@ -76,17 +77,19 @@ year=${month:0:4}
 # Define full URI of source run directory
 if [[ $src_site = "CNAF" ]]; then
     src_uri=$srm_cnaf
+elif [[ $src_site = "CNAF2" ]]; then
+    src_uri=$srm_cnaf2
 elif [[ $src_site = "LNF" ]]; then
     src_uri=$srm_lnf
 elif [[ $src_site = "LNF2" ]]; then
     src_uri=$srm_lnf2
 else
-    echo "ERROR - Source site ${src_site} is unknown. Please use CNAF, LNF, or LNF2" 1>&2
+    echo "ERROR - Source site ${src_site} is unknown. Please use CNAF, CNAF2, LNF, or LNF2" 1>&2
     echo "$usage" 1>&2
     exit 1
 fi
 
-if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]] && [[ $dst_site != "LNF2" ]] && [[ $dst_site != "KLOE" ]]; then
+if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "CNAF2" ]] && [[ $dst_site != "LNF" ]] && [[ $dst_site != "LNF2" ]] && [[ $dst_site != "KLOE" ]]; then
     echo "ERROR - Destination site ${dst_site} is unknown. Please use CNAF, LNF, LNF2, or KLOE" 1>&2
     echo "$usage" 1>&2
     exit 1
