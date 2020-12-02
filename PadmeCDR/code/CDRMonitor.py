@@ -19,11 +19,11 @@ cdr_dir = os.getenv('PADME_CDR_DIR',".")
 cdr_user = os.environ['USER']
 
 # Path to stop_cdr file: when file appears, server will remove it and gently exit
-stop_cdr_file = "%s/run/stop_cdr_Monitor"%cdr_dir
+stop_cdr_file = "%s/run/CDRMonitor.stop"%cdr_dir
 
 # Define log and lock files
 log_file = "%s/log/CDRMonitor.log"%cdr_dir
-pid_file = "%s/run/lock_Monitor"%cdr_dir
+pid_file = "%s/run/CDRMonitor.lock"%cdr_dir
 
 # Define time in sec to pause between checks
 monitor_pause = 300
@@ -148,7 +148,7 @@ lnf2_disk_tot_TB = 100.
 cnaf_summary_file = "/home/%s/du-padme/cnaf_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-cnaf_tape_tot_TB = 500.
+cnaf_tape_tot_TB = 1780.
 
 #################################
 ### CNAF disk occupation data ###
@@ -158,7 +158,7 @@ cnaf_tape_tot_TB = 500.
 cnaf2_summary_file = "/home/%s/du-padme/cnaf2_spazio-occupato.output"%cdr_user
 
 # Total available space in TB
-cnaf2_disk_tot_TB = 60.
+cnaf2_disk_tot_TB = 90.
 
 # Warning and alarm levels (in %) for KLOE disk servers
 cnaf2_level_warn = 60
@@ -184,7 +184,7 @@ kloe_path = "/pdm"
 kloe_tape_app = "/pdm/bin/padme_sum"
 
 # Total available tape space in TB
-kloe_tape_tot_TB = 350.
+kloe_tape_tot_TB = 600.
 
 # Warning and alarm levels (in %) for KLOE disk servers
 kloe_level_warn = 60
@@ -496,7 +496,7 @@ def start_monitor():
             if (int(daq_opc)>daq_level_alarm): daq_color = color_alarm
             #mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"Used:%4.1f TB of %4.1f TB (%s%%)\",\"col\":\"%s\"}}"%(daq_server,daq_use_TB,daq_tot_TB,daq_opc,daq_color))
             mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"Used:%s GB of %s GB (%s%%)\",\"col\":\"%s\"}}"%(daq_server,daq_use,daq_tot,daq_opc,daq_color))
-            append_timeline_info(daq_server,now_time,(daq_use,daq_tot,daq_opc))
+            if daq_tot != "0": append_timeline_info(daq_server,now_time,(daq_use,daq_tot,daq_opc))
 
             mh.write(",")
 
@@ -506,7 +506,7 @@ def start_monitor():
         if (int(pui_opc)>pui_level_warn): pui_color = color_warn
         if (int(pui_opc)>pui_level_alarm): pui_color = color_alarm
         mh.write("{\"title\":\"PADMEUI Disk\",\"current\":{\"value\":\"Used:%s GB of %s GB (%s%%)\",\"col\":\"%s\"}}"%(pui_use,pui_tot,pui_opc,pui_color))
-        append_timeline_info("padmeui",now_time,(pui_use,pui_tot,pui_opc))
+        if pui_tot != "0": append_timeline_info("padmeui",now_time,(pui_use,pui_tot,pui_opc))
 
         mh.write(",")
 
@@ -516,7 +516,7 @@ def start_monitor():
         if (int(d05_opc)>d05_level_warn): d05_color = color_warn
         if (int(d05_opc)>d05_level_alarm): d05_color = color_alarm
         mh.write("{\"title\":\"DATA05 Disk\",\"current\":{\"value\":\"Used:%s GB of %s GB (%s%%)\",\"col\":\"%s\"}}"%(d05_use,d05_tot,d05_opc,d05_color))
-        append_timeline_info("data05",now_time,(d05_use,d05_tot,d05_opc))
+        if d05_tot != "0": append_timeline_info("data05",now_time,(d05_use,d05_tot,d05_opc))
 
         #mh.write(",")
 
@@ -536,7 +536,7 @@ def start_monitor():
         lnf_disk_color = color_ok
         if lnf_disk_use_TB > lnf_disk_tot_TB: lnf_disk_color = color_warn
         mh.write("{\"title\":\"LNF Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(lnf_disk_use_TB,lnf_disk_tot_TB,lnf_disk_opc,lnf_disk_color))
-        append_timeline_info("lnfdisk",now_time,(lnf_disk_use_TB,lnf_disk_tot_TB,lnf_disk_opc))
+        if lnf_disk_use != "0": append_timeline_info("lnfdisk",now_time,(lnf_disk_use_TB,lnf_disk_tot_TB,lnf_disk_opc))
 
         mh.write(",")
 
@@ -547,7 +547,7 @@ def start_monitor():
         lnf2_disk_color = color_ok
         if lnf2_disk_use_TB > lnf2_disk_tot_TB: lnf2_disk_color = color_warn
         mh.write("{\"title\":\"LNF2 Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(lnf2_disk_use_TB,lnf2_disk_tot_TB,lnf2_disk_opc,lnf2_disk_color))
-        append_timeline_info("lnf2disk",now_time,(lnf2_disk_use_TB,lnf2_disk_tot_TB,lnf2_disk_opc))
+        if lnf2_disk_use != "0": append_timeline_info("lnf2disk",now_time,(lnf2_disk_use_TB,lnf2_disk_tot_TB,lnf2_disk_opc))
 
         mh.write(",")
 
@@ -558,7 +558,7 @@ def start_monitor():
         cnaf_tape_color = color_ok
         if cnaf_tape_use_TB > cnaf_tape_tot_TB: cnaf_tape_color = color_warn
         mh.write("{\"title\":\"CNAF Tape\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(cnaf_tape_use_TB,cnaf_tape_tot_TB,cnaf_tape_opc,cnaf_tape_color))
-        append_timeline_info("cnaftape",now_time,(cnaf_tape_use_TB,cnaf_tape_tot_TB,cnaf_tape_opc))
+        if cnaf_tape_use != "0": append_timeline_info("cnaftape",now_time,(cnaf_tape_use_TB,cnaf_tape_tot_TB,cnaf_tape_opc))
 
         mh.write(",")
 
@@ -571,7 +571,7 @@ def start_monitor():
         if (int(cnaf2_disk_opc)>cnaf2_level_warn):  cnaf2_disk_color = color_warn
         if (int(cnaf2_disk_opc)>cnaf2_level_alarm): cnaf2_disk_color = color_alarm
         mh.write("{\"title\":\"CNAF Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc,cnaf2_disk_color))
-        append_timeline_info("cnafdisk",now_time,(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc))
+        if cnaf2_disk_use != "0": append_timeline_info("cnafdisk",now_time,(cnaf2_disk_use_TB,cnaf2_disk_tot_TB,cnaf2_disk_opc))
 
         mh.write(",")
 
@@ -583,7 +583,7 @@ def start_monitor():
         kloe_tape_color = color_ok
         if kloe_tape_use_TB > kloe_tape_tot_TB: kloe_tape_color = color_warn
         mh.write("{\"title\":\"KLOE Tape\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(kloe_tape_use_TB,kloe_tape_tot_TB,kloe_tape_opc,kloe_tape_color))
-        append_timeline_info("kloetape",now_time,(kloe_tape_use_TB,kloe_tape_tot_TB,kloe_tape_opc))
+        if kloe_tape_use != "0": append_timeline_info("kloetape",now_time,(kloe_tape_use_TB,kloe_tape_tot_TB,kloe_tape_opc))
 
         mh.write(",")
 
@@ -594,7 +594,7 @@ def start_monitor():
         if (int(kloe_disk_opc)>kloe_level_warn):  kloe_disk_color = color_warn
         if (int(kloe_disk_opc)>kloe_level_alarm): kloe_disk_color = color_alarm
         mh.write("{\"title\":\"KLOE Disk\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%s%%)\",\"col\":\"%s\"}}"%(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc,kloe_disk_color))
-        append_timeline_info("kloedisk",now_time,(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc))
+        if kloe_disk_tot != "0": append_timeline_info("kloedisk",now_time,(kloe_disk_use_TB,kloe_disk_tot_TB,kloe_disk_opc))
 
         #mh.write(",")
 
@@ -605,6 +605,7 @@ def start_monitor():
         mh.write("PLOTID CDR_DAQ_timeline\n")
         mh.write("PLOTNAME PADME CDR - DAQ Servers - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
@@ -628,9 +629,10 @@ def start_monitor():
         mh.write("PLOTID CDR_Tape_timeline\n")
         mh.write("PLOTNAME PADME CDR - Storage - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
-        mh.write("RANGE_Y 0. 500.\n")
+        #mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
@@ -676,7 +678,7 @@ def start_monitor():
         mh.write("PLOTTYPE timeline\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
-        mh.write("RANGE_Y 0. 500.\n")
+        #mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
@@ -722,7 +724,7 @@ def start_monitor():
         mh.write("PLOTTYPE timeline\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
-        mh.write("RANGE_Y 0. 500.\n")
+        #mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
@@ -743,6 +745,7 @@ def start_monitor():
         mh.write("PLOTID CDR_DAQ_timeline_MONTH\n")
         mh.write("PLOTNAME PADME CDR - DAQ Servers - Monthly - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
@@ -766,9 +769,10 @@ def start_monitor():
         mh.write("PLOTID CDR_Tape_timeline_MONTH\n")
         mh.write("PLOTNAME PADME CDR - Storage - Monthly - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
-        mh.write("RANGE_Y 0. 500.\n")
+        #mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
@@ -789,6 +793,7 @@ def start_monitor():
         mh.write("PLOTID CDR_DAQ_timeline_YEAR\n")
         mh.write("PLOTNAME PADME CDR - DAQ Servers - Yearly - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
@@ -812,9 +817,10 @@ def start_monitor():
         mh.write("PLOTID CDR_Tape_timeline_YEAR\n")
         mh.write("PLOTNAME PADME CDR - Storage - Yearly - %s UTC\n"%now_str())
         mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(TB)\n")
-        mh.write("RANGE_Y 0. 500.\n")
+        #mh.write("RANGE_Y 0. 500.\n")
         mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
         mh.write("COLOR [ \"ff0000\" , \"00ffff\" , \"0000ff\" , \"ff00ff\" , \"00ff00\" ]\n")
         mh.write("LEGEND [ \"LNF Disk\" , \"LNF2 Disk\" , \"CNAF Tape\" , \"CNAF Disk\" , \"KLOE Tape\" ]\n")
