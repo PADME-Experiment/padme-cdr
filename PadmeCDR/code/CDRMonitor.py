@@ -10,6 +10,7 @@ import daemon
 import daemon.pidfile
 
 from Logger import Logger
+from ProxyHandler import ProxyHandler
 
 # Get position of CDR main directory from PADME_CDR_DIR environment variable
 # Default to current dir if not set
@@ -24,6 +25,9 @@ stop_cdr_file = "%s/run/CDRMonitor.stop"%cdr_dir
 # Define log and lock files
 log_file = "%s/log/CDRMonitor.log"%cdr_dir
 pid_file = "%s/run/CDRMonitor.lock"%cdr_dir
+
+# Define long-term proxy location
+long_proxy_file = "%s/run/long_proxy"%cdr_dir
 
 # Define time in sec to pause between checks
 monitor_pause = 300
@@ -473,9 +477,16 @@ def start_monitor():
     sys.stderr = sys.stdout
     #if mode == "i": sys.stdout.interactive = True
 
+    # Define proxy-renewal handler
+    PH = ProxyHandler()
+    PH.long_proxy_file = long_proxy_file
+    PH.debug = 1
+
     print "=== Starting CDRMonitor ==="
 
     while(True):
+
+        PH.renew_voms_proxy()
 
         now_time = time.time()
 
