@@ -299,7 +299,7 @@ class PadmeCDRServer:
         #        print "***ERROR*** gfal-ls returned error status while retrieving run list from %s"%site
         #        return [ "error" ]
         #    run_list.append(line.rstrip())
-       (rc,out,err) = self.execute_command(cmd)
+        (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
                 run = line.rstrip()
@@ -333,7 +333,7 @@ class PadmeCDRServer:
         #        print "***ERROR*** ls returned error status while retrieving file list for run %s from DAQ"%run
         #        return [ "error" ]
         #    file_list.append("%s/%s"%(run,line.rstrip()))
-       (rc,out,err) = self.execute_command(cmd)
+        (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
                 file_list.append("%s/%s"%(run,line.rstrip()))
@@ -408,7 +408,7 @@ class PadmeCDRServer:
         #        print "***ERROR*** gfal-ls returned error status %s while retrieving file list from run dir %s from %s"%(m.group(1),run,site)
         #        return [ "error" ]
         #    file_list.append("%s/%s"%(run,line.rstrip()))
-       (rc,out,err) = self.execute_command(cmd)
+        (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
                 file_list.append("%s/%s"%(run,line.rstrip()))
