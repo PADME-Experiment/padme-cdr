@@ -10,6 +10,7 @@ import daemon
 import daemon.pidfile
 
 from Logger import Logger
+from ProxyHandler import ProxyHandler
 
 # Get position of CDR main directory from PADME_CDR_DIR environment variable
 # Default to current dir if not set
@@ -24,6 +25,9 @@ stop_cdr_file = "%s/run/CDRMonitor.stop"%cdr_dir
 # Define log and lock files
 log_file = "%s/log/CDRMonitor.log"%cdr_dir
 pid_file = "%s/run/CDRMonitor.lock"%cdr_dir
+
+# Define long-term proxy location
+long_proxy_file = "%s/run/long_proxy"%cdr_dir
 
 # Define time in sec to pause between checks
 monitor_pause = 300
@@ -53,6 +57,7 @@ timeline_storage = [
     "l1padme3",
     "l1padme4",
     "l0padme1",
+    "l0padme2",
     "lnfdisk",
     "lnf2disk",
     "cnaftape",
@@ -66,6 +71,7 @@ timeline_file = {
     "l1padme3":"%s/log/timeline_l1padme3.log"%cdr_dir,
     "l1padme4":"%s/log/timeline_l1padme4.log"%cdr_dir,
     "l0padme1":"%s/log/timeline_l0padme1.log"%cdr_dir,
+    "l0padme2":"%s/log/timeline_l0padme2.log"%cdr_dir,
     "lnfdisk" :"%s/log/timeline_lnfdisk.log"%cdr_dir,
     "lnf2disk":"%s/log/timeline_lnf2disk.log"%cdr_dir,
     "cnaftape":"%s/log/timeline_cnaftape.log"%cdr_dir,
@@ -102,7 +108,7 @@ d05_level_alarm = 85
 #############################
 
 # Access information for DAQ data server
-daq_server_list = ("l1padme3","l1padme4","l0padme1")
+daq_server_list = ("l1padme3","l1padme4","l0padme1","l0padme2")
 daq_user = "daq"
 daq_keyfile = "/home/%s/.ssh/id_rsa_cdr"%cdr_user
 
@@ -473,9 +479,16 @@ def start_monitor():
     sys.stderr = sys.stdout
     #if mode == "i": sys.stdout.interactive = True
 
+    # Define proxy-renewal handler
+    PH = ProxyHandler()
+    PH.long_proxy_file = long_proxy_file
+    PH.debug = 1
+
     print "=== Starting CDRMonitor ==="
 
     while(True):
+
+        PH.renew_voms_proxy()
 
         now_time = time.time()
 
@@ -609,15 +622,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
-        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" , \"e74c3c\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"l0padme2\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("l1padme3","PERCENT","FULL"))
         mh.write(" , ")
         mh.write(format_timeline_info("l1padme4","PERCENT","FULL"))
         mh.write(" , ")
         mh.write(format_timeline_info("l0padme1","PERCENT","FULL"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme2","PERCENT","FULL"))
         mh.write(" , ")
         mh.write(format_timeline_info("padmeui","PERCENT","FULL"))
         mh.write(" , ")
@@ -656,15 +671,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
-        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" , \"e74c3c\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"l0padme2\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("l1padme3","PERCENT","DAY"))
         mh.write(" , ")
         mh.write(format_timeline_info("l1padme4","PERCENT","DAY"))
         mh.write(" , ")
         mh.write(format_timeline_info("l0padme1","PERCENT","DAY"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme2","PERCENT","DAY"))
         mh.write(" , ")
         mh.write(format_timeline_info("padmeui","PERCENT","DAY"))
         mh.write(" , ")
@@ -702,15 +719,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
-        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" , \"e74c3c\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"l0padme2\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("l1padme3","PERCENT","WEEK"))
         mh.write(" , ")
         mh.write(format_timeline_info("l1padme4","PERCENT","WEEK"))
         mh.write(" , ")
         mh.write(format_timeline_info("l0padme1","PERCENT","WEEK"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme2","PERCENT","WEEK"))
         mh.write(" , ")
         mh.write(format_timeline_info("padmeui","PERCENT","WEEK"))
         mh.write(" , ")
@@ -749,15 +768,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
-        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" , \"e74c3c\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"l0padme2\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("l1padme3","PERCENT","MONTH"))
         mh.write(" , ")
         mh.write(format_timeline_info("l1padme4","PERCENT","MONTH"))
         mh.write(" , ")
         mh.write(format_timeline_info("l0padme1","PERCENT","MONTH"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme2","PERCENT","MONTH"))
         mh.write(" , ")
         mh.write(format_timeline_info("padmeui","PERCENT","MONTH"))
         mh.write(" , ")
@@ -797,15 +818,17 @@ def start_monitor():
         mh.write("TITLE_X Time\n")
         mh.write("TITLE_Y Occupation(%)\n")
         mh.write("RANGE_Y 0. 100.\n")
-        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
-        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" ]\n")
-        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"padmeui\" , \"data05\" ]\n")
+        mh.write("MODE [ \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" , \"lines\" ]\n")
+        mh.write("COLOR [ \"ff0000\" , \"0000ff\" , \"00ff00\" , \"00ffff\" , \"ff00ff\" , \"e74c3c\" ]\n")
+        mh.write("LEGEND [ \"l1padme3\" , \"l1padme4\" , \"l0padme1\" , \"l0padme2\" , \"padmeui\" , \"data05\" ]\n")
         mh.write("DATA [ ")
         mh.write(format_timeline_info("l1padme3","PERCENT","YEAR"))
         mh.write(" , ")
         mh.write(format_timeline_info("l1padme4","PERCENT","YEAR"))
         mh.write(" , ")
         mh.write(format_timeline_info("l0padme1","PERCENT","YEAR"))
+        mh.write(" , ")
+        mh.write(format_timeline_info("l0padme2","PERCENT","YEAR"))
         mh.write(" , ")
         mh.write(format_timeline_info("padmeui","PERCENT","YEAR"))
         mh.write(" , ")
