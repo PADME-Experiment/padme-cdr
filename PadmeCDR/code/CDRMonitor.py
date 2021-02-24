@@ -58,7 +58,9 @@ disk_list = [
         "Area": "/data",
         "User": "daq",
         "Color": "ff0000",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "l1padme4",
@@ -67,7 +69,9 @@ disk_list = [
         "Area": "/data",
         "User": "daq",
         "Color": "0000ff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "l0padme1",
@@ -76,7 +80,9 @@ disk_list = [
         "Area": "/data",
         "User": "daq",
         "Color": "00ff00",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "l0padme2",
@@ -85,7 +91,9 @@ disk_list = [
         "Area": "/data",
         "User": "daq",
         "Color": "00ffff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "padmeui",
@@ -94,7 +102,9 @@ disk_list = [
         "Area": "/",
         "User": "",
         "Color": "ff00ff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "data05",
@@ -103,7 +113,9 @@ disk_list = [
         "Area": "/data05",
         "User": "",
         "Color": "e74c3c",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     }
 ]
 for i in range(len(disk_list)):
@@ -115,42 +127,54 @@ tape_list = [
         "String": "LNF Disk",
         "Space": 280.,
         "Color": "ff0000",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 90,
+        "Alarm": 100
     },
     {
         "Name": "lnf2disk",
         "String": "LNF Scratch",
         "Space": 100.,
         "Color": "0000ff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 90,
+        "Alarm": 100
     },
     {
         "Name": "cnaftape",
         "String": "CNAF Tape",
         "Space": 1780.,
         "Color": "00ff00",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "cnafdisk",
         "String": "CNAF Disk",
         "Space": 90.,
         "Color": "00ffff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     },
     {
         "Name": "kloetape",
         "String": "KLOE Tape",
         "Space": 600.,
         "Color": "ff00ff",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 90,
+        "Alarm": 100
     },
     {
         "Name": "kloedisk",
         "String": "KLOE Disk",
         "Space": 18.,
         "Color": "e74c3c",
-        "Mode": "lines"
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
  }
 ]
 for i in range(len(tape_list)):
@@ -158,10 +182,6 @@ for i in range(len(tape_list)):
 
 # Keyfile to use for data servers access. All data servers MUST accept it
 daq_keyfile = "/home/%s/.ssh/id_rsa_cdr"%cdr_user
-
-# Warning and alarm levels (in %) for DAQ disk servers
-daq_level_warn = 60
-daq_level_alarm = 85
 
 ################################
 ### LNF disk occupation data ###
@@ -517,8 +537,8 @@ def start_monitor():
             except:
                 daq_opc = opc
             daq_color = color_ok
-            if (daq_opc>daq_level_warn): daq_color = color_warn
-            if (daq_opc>daq_level_alarm): daq_color = color_alarm
+            if (daq_opc>disk["Warn"]): daq_color = color_warn
+            if (daq_opc>disk["Alarm"]): daq_color = color_alarm
             mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"Used:%.1f GB of %.1f GB (%.1f%%)\",\"col\":\"%s\"}}"%(disk["String"],daq_use,daq_tot,daq_opc,daq_color))
             if daq_tot != 0.: append_timeline_info(disk["Timeline"],now_time,(daq_use,daq_tot,daq_opc))
 
@@ -540,7 +560,9 @@ def start_monitor():
             tape_use = get_tape_info(tape)
             tape_opc = 100.*tape_use/tape["Space"]
             tape_color = color_ok
-            if (tape_use > tape["Space"]): tape_color = color_warn
+            if (tape_opc>tape["Warn"]): tape_color = color_warn
+            if (tape_opc>tape["Alarm"]): tape_color = color_alarm
+            #if (tape_use > tape["Space"]): tape_color = color_warn
             mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"Used:%6.1f TB of %6.1f TB (%4.1f%%)\",\"col\":\"%s\"}}"%(tape["String"],tape_use,tape["Space"],tape_opc,tape_color))
             if tape_use != 0.: append_timeline_info(tape["Timeline"],now_time,(tape_use,tape["Space"],tape_opc))
 
