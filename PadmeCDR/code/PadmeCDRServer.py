@@ -535,7 +535,7 @@ class PadmeCDRServer:
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
             cmd = "gfal-rm %s/%s/%s"%(self.site_srm[site],self.data_dir,rawfile)
-            (rc,out,err) = execute_command(cmd)
+            (rc,out,err) = self.execute_command(cmd)
             if rc:
                 print "- File %s - ***ERROR*** gfal-rm returned error %d while deleting destination copy at %s\n%s"%(rawfile,rc,site,err)
             return "error"
@@ -552,7 +552,7 @@ class PadmeCDRServer:
                 telf.write("%s - %s checksum\n"%(self.now_str(),rawfile))
             cmd = "gfal-rm %s/%s/%s"%(self.site_srm[site],self.data_dir,rawfile)
             #for line in self.run_command(cmd): print line.rstrip()
-            (rc,out,err) = execute_command(cmd)
+            (rc,out,err) = self.execute_command(cmd)
             if rc:
                 print "- File %s - ***ERROR*** gfal-rm returned error %d while deleting destination copy at %s\n%s"%(rawfile,rc,site,err)
             return "error"
@@ -588,7 +588,7 @@ class PadmeCDRServer:
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
             cmd = "gfal-rm %s/%s/%s"%(self.site_srm[dst_site],self.data_dir,rawfile)
-            (rc,out,err) = execute_command(cmd)
+            (rc,out,err) = self.execute_command(cmd)
             if rc == 0:
                 print out,
             else:
@@ -703,7 +703,7 @@ class PadmeCDRServer:
 
     def delete_local_file(self,del_file):
         cmd = "rm -f %s"%del_file
-        (rc,out,err) = execute_command(cmd)
+        (rc,out,err) = self.execute_command(cmd)
         if rc:
             print "--- WARNING --- rm returned error %d while deleting local file %s\n%s"%(rc,del_file,err)
 
