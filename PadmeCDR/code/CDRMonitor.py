@@ -5,6 +5,7 @@ import sys
 import re
 import time
 import getopt
+import psutil
 import subprocess
 import daemon
 import daemon.pidfile
@@ -180,6 +181,19 @@ tape_list = [
 for i in range(len(tape_list)):
     tape_list[i]["Timeline"] = "%s/log/timeline_%s.log"%(cdr_dir,tape_list[i]["Name"])
 
+# Source/destination sites for CDR transfer processes
+cdr_transfer = [
+    ["CDRMonitor",  "",    "ON" ],
+    ["DAQ-l1padme3","CNAF","ON" ],
+    ["DAQ-l1padme4","CNAF","ON" ],
+    ["CNAF",        "LNF", "OFF"],
+    ["CNAF",        "KLOE","ON" ],
+    ["DAQ-l1padme3","LNF", "OFF"],
+    ["DAQ-l1padme4","LNF", "OFF"],
+    ["LNF",         "CNAF","OFF"],
+    ["LNF",         "KLOE","OFF"]
+]
+
 # Keyfile to use for data servers access. All data servers MUST accept it
 daq_keyfile = "/home/%s/.ssh/id_rsa_cdr"%cdr_user
 
@@ -262,6 +276,38 @@ def main(argv):
     context.open()
     start_monitor()
     context.close()
+
+def get_transfer_status(src,dst):
+    if dst == "":
+        proc_name = src
+        src_1 = ""
+        src_2 = ""
+        dst_1 = ""
+    else:
+        proc_name = "PadmeCDR"
+        r = re.match("^DAQ-(\S+)$",src)
+        if r:
+            src_1 = "-S DAQ"
+            src_2 = "-s %s"%r.group(1)
+        else:
+            src_1 = "-S %s"%src
+            src_2 = ""
+        dst_1 = "-D %s"%dst
+    for proc in psutil.process_iter():
+        try:
+            p_string = " ".join(proc.cmdline())
+            if (
+                (src_1 == "") and re.match("^.*%s.*$"%proc_name,p_string)
+            ) or (
+                re.match("^.*%s .*$"%proc_name,p_string) and
+                re.match("^.* %s.*$"%src_1,p_string) and
+                ( (src_2 == "") or re.match("^.* %s.*$"%src_2,p_string) ) and
+                re.match("^.* %s.*$"%dst_1,p_string)
+            ):
+                return ("ON",proc.pid,proc.username())
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return ("OFF",-1,"")
 
 def get_disk_info(disk):
 
@@ -708,6 +754,48 @@ def start_monitor():
         mh.write(color)
         mh.write(legend)
         mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_transfer_1\n")
+        mh.write("PLOTNAME PADME CDR Processes Status - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE activetext\n")
+        mh.write("DATA [ ")
+
+        first = True
+        for (src,dst,req) in cdr_transfer:
+            if first:
+                first = False
+            else:
+                mh.write(",")
+            (status,pid,user) = get_transfer_status(src,dst)
+            if req == "ON":
+                if status == "ON":
+                    txt = "Active with pid %d and user %s"%(pid,user)
+                    col = color_ok
+                else:
+                    txt = "OFF"
+                    col = color_alarm
+            else:
+                if status == "ON":
+                    txt = "Active with pid %d and user %s"%(pid,user)
+                    col = color_warn
+                else:
+                    txt = "OFF"
+                    col = ""
+            if dst == "":
+                tag = src
+            else:
+                tag = "%s to %s"%(src,dst)
+            if col:
+                mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"%s\",\"col\":\"%s\"}}"%(tag,txt,col))
+            else:
+                mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"%s\"}}"%(tag,txt))
+
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
 
         mh.close()
 
