@@ -182,28 +182,6 @@ class PadmeCDRServer:
         else:
             print "WARNING - lock file %s DOES NOT EXIST"%self.lock_file
 
-
-    #def renew_voms_proxy(self):
-    #
-    #    # Make sure proxy is valid or renew it
-    #    # WARNING: we assume that processing a file will take less than 2 hours!
-    #
-    #    # Generate VOMS proxy using long lived generic proxy
-    #    renew = True
-    #
-    #    # Check if current proxy is still valid and renew it if less than 2 hours before it expires
-    #    for line in self.run_command("voms-proxy-info"):
-    #        #print(line.rstrip())
-    #        r = re.match("^timeleft  \: (\d+)\:.*$",line)
-    #        if r and int(r.group(1))>=2: renew = False
-    #
-    #    if renew:
-    #        print "- Proxy is missing or will expire in less than 2 hours. Renewing it"
-    #        cmd = "voms-proxy-init --noregen --cert %s --key %s --voms vo.padme.org --valid 24:00"%(self.long_proxy_file,self.long_proxy_file)
-    #        for line in self.run_command(cmd): print(line.rstrip())
-    #            # Need code to handle proxy creation errors (e.g. when long-lived proxy expired)
-    #            # In this case we should issue some message and exit the program
-
     def get_ongoing_run(self):
 
         print "Getting on-going run from DAQ server %s"%self.daq_server
@@ -211,7 +189,6 @@ class PadmeCDRServer:
         # current_run is the last started run
         current_run = ""
         cmd = "%s \'( cat %s )\'"%(self.daq_ssh,self.current_run_file)
-        #for line in self.run_command(cmd): current_run = line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()): current_run = line.rstrip()
@@ -223,7 +200,6 @@ class PadmeCDRServer:
         # last_run is the last stopped run
         last_run = ""
         cmd = "%s \'( cat %s )\'"%(self.daq_ssh,self.last_run_file)
-        #for line in self.run_command(cmd): last_run = line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()): last_run = line.rstrip()
@@ -271,9 +247,6 @@ class PadmeCDRServer:
 
         print "Getting list of runs for year %s on DAQ server %s"%(self.year,self.daq_server)
         cmd = "%s \'( cd %s/%s; ls )\'"%(self.daq_ssh,self.daq_path,self.data_dir)
-        #for line in self.run_command(cmd):
-        #    run = line.rstrip()
-        #    if (self.ongoing_run == "" or run != self.ongoing_run): run_list.append(run)
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -294,11 +267,6 @@ class PadmeCDRServer:
 
         print "Getting list of runs for year %s at %s"%(self.year,site)
         cmd = "gfal-ls %s/%s"%(self.site_srm[site],self.data_dir)
-        #for line in self.run_command(cmd):
-        #    if re.match("^gfal-ls error: ",line):
-        #        print "***ERROR*** gfal-ls returned error status while retrieving run list from %s"%site
-        #        return [ "error" ]
-        #    run_list.append(line.rstrip())
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -328,11 +296,6 @@ class PadmeCDRServer:
         file_list = []
 
         cmd = "%s \'( cd %s/%s/%s; ls *.root )\'"%(self.daq_ssh,self.daq_path,self.data_dir,run)
-        #for line in self.run_command(cmd):
-        #    if re.match("^ls: cannot access",line):
-        #        print "***ERROR*** ls returned error status while retrieving file list for run %s from DAQ"%run
-        #        return [ "error" ]
-        #    file_list.append("%s/%s"%(run,line.rstrip()))
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -354,7 +317,6 @@ class PadmeCDRServer:
 
         # First we get list of files currently on disk buffer
         cmd = "%s \'( cd %s/%s/%s; ls )\'"%(self.kloe_ssh,self.kloe_path,self.data_dir,run)
-        #for line in self.run_command(cmd): file_list.append("%s/%s"%(run,line.rstrip()))
         (rc,out,err) = self.execute_command(cmd)
         if rc != 0:
             print "Error %d while accessing KLOE disk buffer\n%s"%(rc,err)
@@ -369,9 +331,6 @@ class PadmeCDRServer:
 
         # Second we get list of files already stored on the tape library
         cmd = "%s \'( dsmc query archive %s/%s/%s/\*.root )\'"%(self.kloe_ssh,self.kloe_path,self.data_dir,run)
-        #for line in self.run_command(cmd):
-        #    m = re_get_rawdata_file.match(line)
-        #    if (m): file_list.append(m.group(1))
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -398,16 +357,6 @@ class PadmeCDRServer:
         file_list = []
 
         cmd = "gfal-ls %s/%s/%s"%(self.site_srm[site],self.data_dir,run)
-        #for line in self.run_command(cmd):
-        #    m = re.match("^gfal-ls error:\s+(\d+)\s+",line)
-        #    if m:
-        #        # If gfal-ls error is due to missing run directory, just return an empty list
-        #        if ( m.group(1) == "2" ): break
-        #        # Otherwise it is a real error and is reported as such
-        #        print line.rstrip()
-        #        print "***ERROR*** gfal-ls returned error status %s while retrieving file list from run dir %s from %s"%(m.group(1),run,site)
-        #        return [ "error" ]
-        #    file_list.append("%s/%s"%(run,line.rstrip()))
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -423,12 +372,6 @@ class PadmeCDRServer:
     def get_checksum_srm(self,site,rawfile):
         a32 = ""
         cmd = "gfal-sum %s/%s/%s adler32"%(self.site_srm[site],self.data_dir,rawfile)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    try:
-        #        (fdummy,a32) = line.rstrip().split()
-        #    except:
-        #        a32 = ""
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -444,12 +387,6 @@ class PadmeCDRServer:
     def get_checksum_daq(self,rawfile):
         a32 = ""
         cmd = "%s (%s %s/%s/%s)"%(self.daq_ssh,self.daq_adler32_cmd,self.daq_path,self.data_dir,rawfile)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    try:
-        #        (a32,fdummy) = line.rstrip().split()
-        #    except:
-        #        a32 = ""
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -465,12 +402,6 @@ class PadmeCDRServer:
     def get_checksum_kloe(self,rawfile):
         a32 = ""
         cmd = "%s (%s %s/%s)"%(self.kloe_ssh,self.kloe_adler32_cmd,self.kloe_tmpdir,rawfile)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    try:
-        #        (a32,fdummy) = line.rstrip().split()
-        #    except:
-        #        a32 = ""
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -482,11 +413,6 @@ class PadmeCDRServer:
         else:
             print "- WARNING - KLOE adler32 command returned error %d\n%s"%(rc,err)
         return a32
-
-    #def run_command(self,command):
-    #    print "> %s"%command
-    #    p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=True)
-    #    return iter(p.stdout.readline,b'')
 
     def execute_command(self,command):
         print "> %s"%command
@@ -515,17 +441,6 @@ class PadmeCDRServer:
         copy_failed = False
         print "- File %s - Starting copy from DAQ to %s"%(rawfile,site)
         cmd = "gfal-copy -t 3600 -T 3600 -p -D\"SFTP PLUGIN:USER=%s\" -D\"SFTP PLUGIN:PRIVKEY=%s\" %s/%s/%s %s/%s/%s"%(self.daq_user,self.daq_keyfile,self.daq_sftp,self.data_dir,rawfile,self.site_srm[site],self.data_dir,rawfile)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    if re.match("^gfal-copy error: ",line): copy_failed = True
-        #
-        #if copy_failed:
-        #    print "- File %s - ***ERROR*** gfal-copy returned error status while copying from DAQ to %s"%(rawfile,site)
-        #    with open(self.transfer_error_list_file,"a") as telf:
-        #        telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
-        #    cmd = "gfal-rm %s/%s/%s"%(self.site_srm[site],self.data_dir,rawfile)
-        #    for line in self.run_command(cmd): print line.rstrip()
-        #    return "error"
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             print out,
@@ -551,7 +466,6 @@ class PadmeCDRServer:
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s checksum\n"%(self.now_str(),rawfile))
             cmd = "gfal-rm %s/%s/%s"%(self.site_srm[site],self.data_dir,rawfile)
-            #for line in self.run_command(cmd): print line.rstrip()
             (rc,out,err) = self.execute_command(cmd)
             if rc:
                 print "- File %s - ***ERROR*** gfal-rm returned error %d while deleting destination copy at %s\n%s"%(rawfile,rc,site,err)
@@ -567,18 +481,6 @@ class PadmeCDRServer:
         copy_failed = False
         print "- File %s - Starting copy from %s to %s"%(rawfile,src_site,dst_site)
         cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s/%s/%s %s/%s/%s"%(self.site_srm[src_site],self.data_dir,rawfile,self.site_srm[dst_site],self.data_dir,rawfile)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ):
-        #        copy_failed = True
-        #
-        #if copy_failed:
-        #    print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to %s"%(rawfile,src_site,dst_site)
-        #    with open(self.transfer_error_list_file,"a") as telf:
-        #        telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
-        #    cmd = "gfal-rm %s/%s/%s"%(self.site_srm[dst_site],self.data_dir,rawfile)
-        #    for line in self.run_command(cmd): print line.rstrip()
-        #    return "error"
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             print out,
@@ -609,11 +511,9 @@ class PadmeCDRServer:
             print "- File %s - ***ERROR*** cannot extract directory from file name"%rawfile
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
-            #for line in self.run_command("rm -f %s"%tmp_file): print line.rstrip()
             return "error"
 
         cmd = "%s \'( mkdir -p %s/%s/%s )\'"%(self.kloe_ssh,self.kloe_path,self.data_dir,rawdir)
-        #for line in self.run_command(cmd): print line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc:
             print "- File %s - ***ERROR*** mkdir returned error %d while creating destination directory\n%s"%(rawfile,rc,err)
@@ -627,17 +527,6 @@ class PadmeCDRServer:
 
         # gfal-copy SFTP destination is not working: create a temporary local copy of the file
         cmd = "gfal-copy -t 3600 -T 3600 -p %s/%s/%s file://%s"%(self.site_srm[site],self.data_dir,rawfile,tmp_file)
-        #for line in self.run_command(cmd):
-        #    print line.rstrip()
-        #    if ( re.match("^gfal-copy error: ",line) or re.match("^Command timed out",line) ):
-        #        copy_failed = True
-        #
-        #if copy_failed:
-        #    print "- File %s - ***ERROR*** gfal-copy returned error status while copying from %s to local file"%(rawfile,site)
-        #    with open(self.transfer_error_list_file,"a") as telf:
-        #        telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
-        #    for line in self.run_command("rm -f %s"%tmp_file): print line.rstrip()
-        #    return "error"
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             print out,
@@ -650,7 +539,6 @@ class PadmeCDRServer:
 
         # Now send local copy to KLOE temporary directory using good old scp
         cmd = "%s \'( mkdir -p %s/%s )\'"%(self.kloe_ssh,self.kloe_tmpdir,rawdir)
-        #for line in self.run_command(cmd): print line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc:
             print "- File %s - ***ERROR*** mkdir returned error %d while creating destination directory\n%s"%(rawfile,rc,err)
@@ -658,7 +546,6 @@ class PadmeCDRServer:
             return "error"
 
         cmd = "scp -i %s %s %s@%s:%s/%s"%(self.kloe_keyfile,tmp_file,self.kloe_user,self.kloe_server,self.kloe_tmpdir,rawfile)
-        #for line in self.run_command(cmd): print line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc:
             print "- File %s - ***ERROR*** scp returned error %d while copying temporary file\n%s"%(rawfile,rc,err)
@@ -666,8 +553,6 @@ class PadmeCDRServer:
             return "error"
 
         # Clean up local temporary file
-        #cmd = "rm -f %s"%tmp_file
-        #for line in self.run_command(cmd): print line.rstrip()
         self.delete_local_file(tmp_file)
 
         # Verify if the copy was correctly completed
@@ -681,7 +566,6 @@ class PadmeCDRServer:
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s checksum\n"%(self.now_str(),rawfile))
             cmd = "%s \'( rm -f %s/%s )\'"%(self.kloe_ssh,self.kloe_tmpdir,rawfile)
-            #for line in self.run_command(cmd): print line.rstrip()
             (rc,out,err) = self.execute_command(cmd)
             if rc:
                 print "- File %s - ***ERROR*** ssh returned error %d while removing temporary copy of file at KLOE\n%s"%(rawfile,rc,err)
@@ -689,7 +573,6 @@ class PadmeCDRServer:
 
         # Finally move file from temporary directory to daq data directory
         cmd = "%s \'( mv %s/%s %s/%s/%s )\'"%(self.kloe_ssh,self.kloe_tmpdir,rawfile,self.kloe_path,self.data_dir,rawfile)
-        #for line in self.run_command(cmd): print line.rstrip()
         (rc,out,err) = self.execute_command(cmd)
         if rc:
             print "- File %s - ***ERROR*** ssh returned error %d while moving KLOE copy to final directory\n%s"%(rawfile,rc,err)
@@ -737,12 +620,6 @@ class PadmeCDRServer:
     def get_kloe_used_space(self):
         used = 100
         cmd = "%s \'( df | grep \/pdm | awk \"{print \$4}\" )\'"%self.kloe_ssh
-        #for line in self.run_command(cmd):
-        #    try:
-        #        used = int(line.rstrip()[:-1])
-        #    except:
-        #        print "- WARNING - Could not extract used disk space from KLOE server"
-        #        used = 100
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             for line in iter(out.splitlines()):
@@ -752,7 +629,7 @@ class PadmeCDRServer:
                     print "- WARNING - Could not extract used disk space from KLOE server\n%s"%out
                     used = 100
         else:
-            print "- WARNING - KLOE adler32 command returned error %d\n%s"%(rc,err)
+            print "- WARNING - KLOE disk space command returned error %d\n%s"%(rc,err)
 
         return used
 
