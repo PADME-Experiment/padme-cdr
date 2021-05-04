@@ -181,6 +181,56 @@ tape_list = [
 for i in range(len(tape_list)):
     tape_list[i]["Timeline"] = "%s/log/timeline_%s.log"%(cdr_dir,tape_list[i]["Name"])
 
+network_list = [
+    {
+        "Name": "padmeui_lnf",
+        "String": "PadmeUI 10Gbps LNF LAN",
+        "Host": "localhost",
+        "Interface": "p1p1",
+        "User": "",
+        "Color": "ff0000",
+        "Mode": "lines"
+    },
+    {
+        "Name": "l1padme3_daq",
+        "String": "L1padme3 10Gbps DAQ LAN",
+        "Host": "l1padme3",
+        "Interface": "p1p1",
+        "User": "daq",
+        "Color": "0000ff",
+        "Mode": "lines"
+    },
+    {
+        "Name": "l1padme3_lnf",
+        "String": "L1padme3 10Gbps LNF LAN",
+        "Host": "l1padme3",
+        "Interface": "p1p2",
+        "User": "daq",
+        "Color": "ff00ff",
+        "Mode": "lines"
+    },
+    {
+        "Name": "l1padme4_daq",
+        "String": "L1padme4 10Gbps DAQ LAN",
+        "Host": "l1padme4",
+        "Interface": "p1p1",
+        "User": "daq",
+        "Color": "00ff00",
+        "Mode": "lines"
+    },
+    {
+        "Name": "l1padme4_lnf",
+        "String": "L1padme4 10Gbps LNF LAN",
+        "Host": "l1padme4",
+        "Interface": "p1p2",
+        "User": "daq",
+        "Color": "00ffff",
+        "Mode": "lines"
+    }
+]
+for i in range(len(network_list)):
+    network_list[i]["Timeline"] = "%s/log/timeline_%s.log"%(cdr_dir,network_list[i]["Name"])
+
 # Source/destination sites for CDR transfer processes
 cdr_transfer = [
     ["CDRMonitor",  "",    "ON" ],
@@ -309,6 +359,22 @@ def get_transfer_status(src,dst):
             pass
     return ("OFF",-1,"")
 
+def get_network_info(network):
+
+    rx = 0.
+    tx = 0.
+    if network["Host"] == "localhost":
+        cmd = "/usr/sbin/ifconfig %s"%network["Interface"]
+    else:
+        daq_ssh = "ssh -i %s -l %s %s"%(daq_keyfile,network["User"],network["Host"])
+        cmd = "%s /usr/sbin/ifconfig %s"%(daq_ssh,network["Interface"])
+    for line in run_command(cmd):
+        rc = re.match("^\s*RX packets.*bytes\s+(\d+).*$",line)
+        if rc: rx = float(rc.group(1))/1024/1024
+        rc = re.match("^\s*TX packets.*bytes\s+(\d+).*$",line)
+        if rc: tx = float(rc.group(1))/1024/1024
+    return (rx,tx)
+
 def get_disk_info(disk):
 
     disk_total = 0.
@@ -410,6 +476,18 @@ def get_cnafdisk_info():
             disk_use = float(rc.group(3))/1024./1024./1024./1024.
     return disk_use
 
+# Return last line from timeline file in an efficient way
+def get_last_line(fname, maxLineLength=80):
+    last_line = ""
+    try:
+        fp=file(fname, "rb")
+        fp.seek(-maxLineLength-1, 2) # 2 means "from the end of the file"
+        last_line = fp.readlines()[-1]
+    except:
+        # Fails if file does not exist or is still empty
+        pass
+    return last_line
+
 def append_timeline_info(tlfile,now,data_list):
     with open(tlfile,"a") as tlf:
         tlf.write("%.2f"%now)
@@ -419,10 +497,23 @@ def append_timeline_info(tlfile,now,data_list):
 
 def format_timeline_info(timeline_file,mode,period):
 
-    old_date = "0."
-    old_used = "0."
-    old_free = "0."
-    old_percent = "0."
+    old_date = ""
+    old_used = ""
+    old_free = ""
+    old_percent = ""
+    old_rx = ""
+    old_tx = ""
+    old_rx_str = ""
+    old_tx_str = ""
+
+    new_date = ""
+    new_used = ""
+    new_free = ""
+    new_percent = ""
+    new_rx = ""
+    new_tx = ""
+    new_rx_str = ""
+    new_tx_str = ""
 
     if period == "FULL":
         start_date = 0.
@@ -439,61 +530,99 @@ def format_timeline_info(timeline_file,mode,period):
         start_date = "0."
 
     fmt = "["
-    first = True
     used = True
     with open(timeline_file,"r") as tlf:
         for l in tlf:
-            m = re.match("^(\S+) (\S+) (\S+) (\S+)",l)
-            if m:
 
-                # Extract new values
-                new_date = m.group(1)
-                new_used = m.group(2)
-                new_free = str(float(m.group(3))-float(m.group(2)))
-                new_percent = m.group(4)
-                #print "%s %s ### %s %s ### %s %s ### %s %s"%(old_date,new_date,old_used,new_used,old_free,new_free,old_percent,new_percent)
+            found = False
+            if mode == "RX" or mode == "TX":
 
-                # Check if this point should be included in the plot
-                try:
-                    new_date_f = float(new_date)
-                except ValueError:
-                    new_date_f = 0.
-                if new_date_f < start_date: continue
+                m = re.match("^(\S+) (\S+) (\S+)",l)
+                if m:
+                    found = True
+                    new_date = m.group(1)
+                    new_rx = m.group(2)
+                    new_tx = m.group(3)
 
-                # Do not prepend a comma before first value in list
-                if first:
-                    first = False
-                elif used:
-                    fmt += ","
+            else:
 
-                # Add new value to timeline plot only if it changed since previous reading
-                if mode == "PERCENT":
-                    if ( new_percent != old_percent ):
-                        if not used: fmt += "[\"%s\",%s],"%(old_date,old_percent)
-                        fmt += "[\"%s\",%s]"%(new_date,new_percent)
-                        used = True
-                    else:
-                        used = False
-                elif mode == "USED":
-                    if ( new_used != old_used ):
-                        if not used: fmt += "[\"%s\",%s],"%(old_date,old_used)
-                        fmt += "[\"%s\",%s]"%(new_date,new_used)
-                        used = True
-                    else:
-                        used = False
-                elif mode == "FREE":
-                    if ( new_free != old_free ):
-                        if not used: fmt += "[\"%s\",%s],"%(old_date,old_free)
-                        fmt += "[\"%s\",%s]"%(new_date,new_free)
-                        used = True
-                    else:
-                        used = False
+                m = re.match("^(\S+) (\S+) (\S+) (\S+)",l)
+                if m:
+                    found = True
+                    new_date = m.group(1)
+                    new_used = "%.2f"%float(m.group(2))
+                    new_free = "%.2f"%(float(m.group(3))-float(m.group(2)))
+                    new_percent = "%.2f"%float(m.group(4))
 
-                # Store values for future checks
-                old_date = new_date
-                old_used = new_used
-                old_free = new_free
-                old_percent = new_percent
+            if not found: continue
+
+            # Check if this point should be included in the plot
+            try:
+                new_date_f = float(new_date)
+            except ValueError:
+                new_date_f = 0.
+            if new_date_f < start_date: continue
+
+            # Add new value to timeline plot only if it changed since previous reading
+            if mode == "PERCENT":
+                if ( new_percent != old_percent ):
+                    if not used: fmt += "[\"%s\",%s],"%(old_date,old_percent)
+                    fmt += "[\"%s\",%s],"%(new_date,new_percent)
+                    used = True
+                else:
+                    used = False
+            elif mode == "USED":
+                if ( new_used != old_used ):
+                    if not used: fmt += "[\"%s\",%s],"%(old_date,old_used)
+                    fmt += "[\"%s\",%s],"%(new_date,new_used)
+                    used = True
+                else:
+                    used = False
+            elif mode == "FREE":
+                if ( new_free != old_free ):
+                    if not used: fmt += "[\"%s\",%s],"%(old_date,old_free)
+                    fmt += "[\"%s\",%s],"%(new_date,new_free)
+                    used = True
+                else:
+                    used = False
+            elif mode == "RX":
+                if old_rx != "":
+                    try:
+                        dt = float(new_date)-float(old_date)
+                        drx = float(new_rx)-float(old_rx)
+                        new_rx_str = "%.2f"%(drx/dt)
+                        if new_rx_str != old_rx_str:
+                            if not used: fmt += "[\"%s\",%s],"%(old_date,old_rx_str)
+                            fmt += "[\"%s\",%s],"%(new_date,new_rx_str)
+                            old_rx_str = new_rx_str
+                            used = True
+                        else:
+                            used = False
+                    except:
+                        pass
+            elif mode == "TX":
+                if old_tx != "":
+                    try:
+                        dt = float(new_date)-float(old_date)
+                        dtx = float(new_tx)-float(old_tx)
+                        new_tx_str = "%.2f"%(dtx/dt)
+                        if new_tx_str != old_tx_str:
+                            if not used: fmt += "[\"%s\",%s],"%(old_date,old_tx_str)
+                            fmt += "[\"%s\",%s],"%(new_date,new_tx_str)
+                            old_tx_str = new_tx_str
+                            used = True
+                        else:
+                            used = False
+                    except:
+                        pass
+
+            # Store values for future checks
+            old_date = new_date
+            old_used = new_used
+            old_free = new_free
+            old_percent = new_percent
+            old_rx = new_rx
+            old_tx = new_tx
 
     # Last reading must be stored even if it did not change
     if not used:
@@ -503,6 +632,13 @@ def format_timeline_info(timeline_file,mode,period):
             fmt += "[\"%s\",%s]"%(old_date,old_used)
         elif mode == "FREE":
             fmt += "[\"%s\",%s]"%(old_date,old_free)
+        elif mode == "RX":
+            fmt += "[\"%s\",%s]"%(old_date,old_rx_str)
+        elif mode == "TX":
+            fmt += "[\"%s\",%s]"%(old_date,old_tx_str)
+
+    # Remove last "," from the string (if any)
+    if fmt[-1] == ",": fmt = fmt[:-1]
 
     fmt += "]"
     return fmt
@@ -757,7 +893,7 @@ def start_monitor():
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_transfer_1\n")
+        mh.write("PLOTID CDR_process_1\n")
         mh.write("PLOTNAME PADME CDR Processes Status - %s UTC\n"%now_str())
         mh.write("PLOTTYPE activetext\n")
         mh.write("DATA [ ")
@@ -793,6 +929,172 @@ def start_monitor():
                 mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"%s\"}}"%(tag,txt))
 
         mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_traffic_1\n")
+        mh.write("PLOTNAME PADME CDR Network Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE activetext\n")
+        mh.write("DATA [ ")
+
+        first = True
+        for network in network_list:
+            # Get previous readout
+            old = get_last_line(network["Timeline"],40)
+            if old:
+                (old_time,old_rx,old_tx) = old.split()
+            if first:
+                first = False
+            else:
+                mh.write(",")
+            txt = "RX: - MiB/s TX: - MiB/s"
+            (rx,tx) = get_network_info(network)
+            if (old_time != ""):
+                dt = float(now_time)-float(old_time)
+                drx = rx-float(old_rx)
+                dtx = tx-float(old_tx)
+                txt = "RX: %.2f Mib/s TX: %.2f MiB/s"%(drx/dt,dtx/dt)
+            mh.write("{\"title\":\"%s\",\"current\":{\"value\":\"%s\"}}"%(network["String"],txt))
+            if (rx != 0.) and (tx != 0.):
+                append_timeline_info(network["Timeline"],now_time,(rx,tx))
+
+        mh.write(" ]\n")
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_RX_timeline\n")
+        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"RX","FULL")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_TX_timeline\n")
+        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"TX","FULL")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_RX_timeline_DAY\n")
+        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"RX","DAY")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_TX_timeline_DAY\n")
+        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"TX","DAY")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_RX_timeline_WEEK\n")
+        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"RX","WEEK")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_TX_timeline_WEEK\n")
+        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"TX","WEEK")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_RX_timeline_MONTH\n")
+        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"RX","MONTH")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_TX_timeline_MONTH\n")
+        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"TX","MONTH")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_RX_timeline_YEAR\n")
+        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"RX","YEAR")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
+
+        mh.write("\n")
+
+        mh.write("PLOTID CDR_TX_timeline_YEAR\n")
+        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+        mh.write("PLOTTYPE timeline\n")
+        mh.write("TIME_FORMAT extended\n")
+        mh.write("TITLE_X Time\n")
+        mh.write("TITLE_Y MiB/s\n")
+        (data,legend,color,mode) = get_formatted_list(network_list,"TX","YEAR")
+        mh.write(mode)
+        mh.write(color)
+        mh.write(legend)
+        mh.write(data)
 
         mh.write("\n")
 
