@@ -363,7 +363,7 @@ class PadmeCDRServer:
                 file_list.append("%s/%s"%(run,line.rstrip()))
         # If gfal-ls error is due to missing run directory (error 2), just return an empty list
         elif rc != 2:
-            print "***ERROR*** gfal-ls returned error status %s while retrieving file list from run dir %s from %s\n%s"%(m.group(1),run,site,err)
+            print "***ERROR*** gfal-ls returned error status %d while retrieving file list from run dir %s from %s\n%s"%(rc,run,site,err)
             return [ "error" ]
 
         file_list.sort()
