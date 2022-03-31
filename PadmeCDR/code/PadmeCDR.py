@@ -20,7 +20,7 @@ source_sites_list = [ "DAQ", "LNF", "CNAF" ]
 destination_sites_list = [ "LNF", "CNAF", "KLOE" ]
 
 # Define list of years of data taking
-years_list = [ "2018", "2019", "2020", "2021" ]
+years_list = [ "2018", "2019", "2020", "2021", "2022" ]
 
 def print_help():
     print 'PadmeCDR [-S src_site -D dst_site] [-L site] [-s data_srv] [-Y year] [-a after] [-b before] [-i] [-h]'

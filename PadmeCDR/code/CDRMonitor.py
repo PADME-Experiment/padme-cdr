@@ -590,12 +590,15 @@ def format_timeline_info(timeline_file,mode,period):
                     try:
                         dt = float(new_date)-float(old_date)
                         drx = float(new_rx)-float(old_rx)
-                        new_rx_str = "%.2f"%(drx/dt)
-                        if new_rx_str != old_rx_str:
-                            if not used: fmt += "[\"%s\",%s],"%(old_date,old_rx_str)
-                            fmt += "[\"%s\",%s],"%(new_date,new_rx_str)
-                            old_rx_str = new_rx_str
-                            used = True
+                        if drx >= 0:
+                            new_rx_str = "%.2f"%(drx/dt)
+                            if new_rx_str != old_rx_str:
+                                if not used: fmt += "[\"%s\",%s],"%(old_date,old_rx_str)
+                                fmt += "[\"%s\",%s],"%(new_date,new_rx_str)
+                                old_rx_str = new_rx_str
+                                used = True
+                            else:
+                                used = False
                         else:
                             used = False
                     except:
@@ -605,12 +608,15 @@ def format_timeline_info(timeline_file,mode,period):
                     try:
                         dt = float(new_date)-float(old_date)
                         dtx = float(new_tx)-float(old_tx)
-                        new_tx_str = "%.2f"%(dtx/dt)
-                        if new_tx_str != old_tx_str:
-                            if not used: fmt += "[\"%s\",%s],"%(old_date,old_tx_str)
-                            fmt += "[\"%s\",%s],"%(new_date,new_tx_str)
-                            old_tx_str = new_tx_str
-                            used = True
+                        if dtx >= 0:
+                            new_tx_str = "%.2f"%(dtx/dt)
+                            if new_tx_str != old_tx_str:
+                                if not used: fmt += "[\"%s\",%s],"%(old_date,old_tx_str)
+                                fmt += "[\"%s\",%s],"%(new_date,new_tx_str)
+                                old_tx_str = new_tx_str
+                                used = True
+                            else:
+                                used = False
                         else:
                             used = False
                     except:
