@@ -31,7 +31,10 @@ SRM = {
 SITE_DEFAULT = "CNAF2"
 
 # Default number of jobs to use
-JOBS_DEFAULT = "20"
+JOBS_DEFAULT = "1"
+
+# Maximum number of retries before giving up
+RETRIES_MAX = 10
 
 # Verbose level (no messages by default)
 VERBOSE = 0
@@ -120,17 +123,31 @@ def main(argv):
     file_list = get_file_list(run,site)
     if file_list[0] == "error": end_error("ERROR - Unable to get list of files for run %s from %s"%(run,site_string))
 
-    print "%s - Start deleting run %s (%d files)"%(now_str(),run,len(file_list))
+    retries = 0
+    while len(file_list) > 0:
 
-    cmd = "parallel -j %s gfal-rm {} :::"%jobs
-    for f in file_list: cmd += " %s/%s"%(run_path,f)
-    #print "> %s"%cmd
-    for line in run_command(cmd): print line.rstrip()
+        if retries >= RETRIES_MAX:
+            end_error("ERROR - Unable to delete run %s from %s after %d retries"%(run,site_string,retries))
 
-    # When done, remove run directory
-    cmd = "gfal-rm -r %s"%run_path
-    print "> %s"%cmd
-    for line in run_command(cmd): print line.rstrip()
+        print "%s - Start deleting run %s (%d files)"%(now_str(),run,len(file_list))
+
+        # If parallel is switched off (jobs=1) rely on "gfal-rm -r" to do the job
+        if jobs > 1:
+            cmd = "parallel -j %s gfal-rm {} :::"%jobs
+            for f in file_list: cmd += " %s/%s"%(run_path,f)
+            #print "> %s"%cmd
+            for line in run_command(cmd): print line.rstrip()
+
+        # When done, remove run directory
+        cmd = "gfal-rm -r %s"%run_path
+        print "> %s"%cmd
+        for line in run_command(cmd): print line.rstrip()
+
+        # Check if all files were deleted. An error means that the directory was correctly removed
+        file_list = get_file_list(run,site)
+        if file_list[0] == "error": break
+
+        retires += 1
 
     print
     print "%s === DeleteRun - run %s deleted from %s ==="%(now_str(),run,site)

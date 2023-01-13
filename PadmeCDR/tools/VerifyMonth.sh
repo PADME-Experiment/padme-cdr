@@ -2,10 +2,13 @@
 
 # Prepare a variable with usage guidelines
 read -r -d '' usage <<EOF
-Usage: $0 -m month [-S src_site] [-D dst_site] [-j jobs] [-h]
-Available source sites: CNAF CNAF2 LNF LNF2
-Available destination sites: CNAF CNAF2 LNF LNF2 KLOE
-Default: verify CNAF vs LNF
+Usage: $0 -m month [-S site] [-D site] [-j jobs] [-v] [-h]
+-m month  Define month to verify in the format yyyymm (e.g. 202010 for october 2020)
+-S site   Define comparison source site. Available sites: CNAF CNAF2 LNF LNF2
+-D site   Define comparison destination site. Available sites: CNAF CNAF2 LNF LNF2 KLOE
+-v        Enable verbose mode (i.e. show list of missing files)
+-h        Show this help message and exit
+Default comparison: verify CNAF vs LNF
 EOF
 
 # Find where this script is really located: needed to find the corresponding VerifyRun.py script
@@ -35,14 +38,17 @@ srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTa
 srm_cnaf2="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 #srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
 #srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
-srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
-srm_lnf2="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+#srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
+#srm_lnf2="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
+srm_lnf2="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch"
 
 src_site="CNAF"
 dst_site="LNF"
 month=""
 jobs=20
-while getopts ":m:S:D:j:h" o; do
+verbose=""
+while getopts ":m:S:D:j:vh" o; do
     case "${o}" in
         m)
             month=${OPTARG}
@@ -55,6 +61,9 @@ while getopts ":m:S:D:j:h" o; do
             ;;
         j)
             jobs=${OPTARG}
+            ;;
+        v)
+            verbose="-v"
             ;;
         h)
             echo "$usage"
@@ -110,12 +119,12 @@ if [ ${#run_list[@]} -eq 0 ]; then
     echo "WARNING - No runs found on source site ${src_site} for month ${month}."
 else
     if [[ $dst_site != "KLOE" ]]; then
-	parallel $VERIFYRUN -R {} -S $src_site -D $dst_site ::: "${run_list[@]}"
+	parallel $VERIFYRUN -R {} -S $src_site -D $dst_site $verbose ::: "${run_list[@]}"
     else
 	# KLOE site has problems with multiple ssh accesses: do not use parallel
 	for run in "${run_list[@]}"
 	do
-	    $VERIFYRUN -R $run -S $src_site -D $dst_site
+	    $VERIFYRUN -R $run -S $src_site -D $dst_site $verbose
 	done
     fi
 fi

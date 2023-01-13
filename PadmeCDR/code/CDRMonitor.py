@@ -126,7 +126,8 @@ tape_list = [
     {
         "Name": "lnfdisk",
         "String": "LNF Disk",
-        "Space": 280.,
+        #"Space": 280.,
+        "Space": 397.,
         "Color": "ff0000",
         "Mode": "lines",
         "Warn": 90,
@@ -162,7 +163,8 @@ tape_list = [
     {
         "Name": "kloetape",
         "String": "KLOE Tape",
-        "Space": 600.,
+        #"Space": 600.,
+        "Space": 900.,
         "Color": "ff00ff",
         "Mode": "lines",
         "Warn": 90,
@@ -238,8 +240,8 @@ cdr_transfer = [
     ["DAQ-l1padme4","CNAF","ON" ],
     ["CNAF",        "LNF", "OFF"],
     ["CNAF",        "KLOE","ON" ],
-    ["DAQ-l1padme3","LNF", "OFF"],
-    ["DAQ-l1padme4","LNF", "OFF"],
+    ["DAQ-l1padme3","LNF", "ON" ],
+    ["DAQ-l1padme4","LNF", "ON" ],
     ["LNF",         "CNAF","OFF"],
     ["LNF",         "KLOE","OFF"]
 ]
