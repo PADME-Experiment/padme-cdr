@@ -117,6 +117,17 @@ disk_list = [
         "Mode": "lines",
         "Warn": 65,
         "Alarm": 90
+    },
+    {
+        "Name": "padmesrv2",
+        "String": "padmesrv2",
+        "Host": "padmesrv2",
+        "Area": "/mnt/data01",
+        "User": "daq",
+        "Color": "ffff00",
+        "Mode": "lines",
+        "Warn": 65,
+        "Alarm": 90
     }
 ]
 for i in range(len(disk_list)):
@@ -238,10 +249,12 @@ cdr_transfer = [
     ["CDRMonitor",  "",    "ON" ],
     ["DAQ-l1padme3","CNAF","ON" ],
     ["DAQ-l1padme4","CNAF","ON" ],
+    ["DAQ-padmesrv2","CNAF","ON" ],
     ["CNAF",        "LNF", "OFF"],
     ["CNAF",        "KLOE","ON" ],
     ["DAQ-l1padme3","LNF", "ON" ],
     ["DAQ-l1padme4","LNF", "ON" ],
+    ["DAQ-padmesrv2","LNF", "ON" ],
     ["LNF",         "CNAF","OFF"],
     ["LNF",         "KLOE","OFF"]
 ]

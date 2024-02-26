@@ -16,7 +16,7 @@ CDR_USER = os.environ['USER']
 # Access information for DAQ data server
 DAQ_USER = "daq"
 DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
-DAQ_SERVERS = [ "l1padme3", "l1padme4" ]
+DAQ_SERVERS = [ "l1padme3", "l1padme4", "padmesrv2" ]
 
 # Access information for KLOE tape library
 KLOE_SERVER = "fibm15"

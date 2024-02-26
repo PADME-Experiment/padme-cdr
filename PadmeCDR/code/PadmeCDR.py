@@ -12,7 +12,7 @@ from PadmeCDRServer import PadmeCDRServer
 from PadmeCDRList import PadmeCDRList
 
 # Define list of available data servers
-data_servers_list = [ "l1padme3", "l1padme4" ]
+data_servers_list = [ "l1padme3", "l1padme4", "padmesrv2" ]
 
 # Define lists of source and destination sites
 sites_list = [ "ALL", "DAQ", "LNF", "CNAF", "KLOE" ]

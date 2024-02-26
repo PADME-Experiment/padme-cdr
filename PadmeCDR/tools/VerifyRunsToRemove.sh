@@ -35,7 +35,7 @@ srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTa
 #srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
 srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
 
-srv_list=( "l1padme3" "l1padme4" )
+srv_list=( "l1padme3" "l1padme4" "padmesrv2" )
 daq_user="daq"
 daq_keyfile="/home/${USER}/.ssh/id_rsa_cdr"
 daq_path="/data/DAQ"
