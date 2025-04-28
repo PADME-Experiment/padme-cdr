@@ -135,6 +135,7 @@ class PadmeCDRServer:
             "LNF" : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org/daq",
             "CNAF": "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape/daq"
         }
+        self.site_lnf_davs = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org/daq"
 
         # Initialization is finished: start the main CDR loop
         self.main_loop()
@@ -482,6 +483,11 @@ class PadmeCDRServer:
         copy_failed = False
         print "- File %s - Starting copy from %s to %s"%(rawfile,src_site,dst_site)
         cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s/%s/%s %s/%s/%s"%(self.site_srm[src_site],self.data_dir,rawfile,self.site_srm[dst_site],self.data_dir,rawfile)
+
+        # Force use of DAVS protocol when copying from LNF to CNAF
+        if src_site == "LNF" and dst_site == "CNAF":
+            cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s/%s/%s %s/%s/%s"%(self.site_lnf_davs,self.data_dir,rawfile,self.site_srm[dst_site],self.data_dir,rawfile)
+
         (rc,out,err) = self.execute_command(cmd)
         if rc == 0:
             print out,

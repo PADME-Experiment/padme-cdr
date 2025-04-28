@@ -37,10 +37,10 @@ KLOE_TMPDIR = "/pdm/tmp"
 
 # SRM addresses
 SRM = {
-    #"LNF"   : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org",
-    #"LNF2"  : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch",
-    "LNF"   : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org",
-    "LNF2"  : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch",
+    "LNF"   : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org",
+    "LNF2"  : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch",
+    #"LNF"   : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org",
+    #"LNF2"  : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch",
     "CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
     "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
 }
@@ -303,7 +303,11 @@ def copy_file_srm_srm(filepath,src_site,dst_site):
 
     print "%s - File %s - Starting copy from %s to %s"%(now_str(),filepath,src_site,dst_site)
 
-    cmd = "gfal-copy -t 3600 -T 3600 -p --checksum ADLER32 %s %s%s %s%s"%(SPACE_TOKEN[dst_site],SRM[src_site],filepath,SRM[dst_site],filepath)
+    timeout = 300
+    # CNAF has a hierarchical filesystem which may need a longer time to stage in the file
+    if src_site == "CNAF": timeout = 3600
+
+    cmd = "gfal-copy -t %d -T %d -p --checksum ADLER32 %s %s%s %s%s"%(timeout,timeout,SPACE_TOKEN[dst_site],SRM[src_site],filepath,SRM[dst_site],filepath)
     (rc,out,err) = execute_command(cmd)
     if rc == 0:
         print out,
@@ -410,7 +414,11 @@ def copy_file_srm_local(filepath,src_site,top_dir):
 
     print "%s - File %s - Starting copy from %s to LOCAL(%s)"%(now_str(),filepath,src_site,top_dir)
 
-    cmd = "gfal-copy -t 3600 -T 3600 -p %s%s file://%s%s"%(SRM[src_site],filepath,top_dir,filepath)
+    timeout = 300
+    # CNAF has a hierarchical filesystem which may need a longer time to stage in the file
+    if src_site == "CNAF": timeout = 3600
+
+    cmd = "gfal-copy -t %d -T %d -p %s%s file://%s%s"%(timeout,timeout,SRM[src_site],filepath,top_dir,filepath)
     (rc,out,err) = execute_command(cmd)
     if rc == 0:
         print out,
@@ -440,7 +448,9 @@ def copy_file_local_srm(filepath,top_dir,dst_site):
 
     print "%s - File %s - Starting copy from LOCAL(%s) to %s"%(now_str(),filepath,top_dir,dst_site)
 
-    cmd = "gfal-copy -t 3600 -T 3600 -p %s file://%s%s %s%s"%(SPACE_TOKEN[dst_site],top_dir,filepath,SRM[dst_site],filepath)
+    timeout = 300
+
+    cmd = "gfal-copy -t %d -T %d -p %s file://%s%s %s%s"%(timeout,timeout,SPACE_TOKEN[dst_site],top_dir,filepath,SRM[dst_site],filepath)
     (rc,out,err) = execute_command(cmd)
     if rc == 0:
         print out,
@@ -611,7 +621,7 @@ def main(argv):
     if (dst_site == "LOCAL"): dst_string += "(%s)"%dst_dir
 
     print
-    print "%s === TransferFile %s from %s to %s ==="%(now_str(),filepath,src_string,dst_string)
+    print "%s === CopyFile %s from %s to %s ==="%(now_str(),filepath,src_string,dst_string)
 
     # Check if file exists at source site
     if not file_exists(filepath,src_site,src_dir):
