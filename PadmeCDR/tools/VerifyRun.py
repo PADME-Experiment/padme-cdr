@@ -12,16 +12,19 @@ SITE_LIST = [ "LNF", "LNF2", "CNAF", "CNAF2", "KLOE" , "DAQ", "LOCAL" ]
 
 # User running CDR
 CDR_USER = os.environ['USER']
+CDR_HOME = os.environ['HOME']
 
 # Access information for DAQ data server
 DAQ_USER = "daq"
-DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+#DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+DAQ_KEYFILE = "%s/.ssh/id_rsa_cdr"%CDR_HOME
 DAQ_SERVERS = [ "l1padme3", "l1padme4", "padmesrv2" ]
 
 # Access information for KLOE tape library
 KLOE_SERVER = "fibm15"
 KLOE_USER = "pdm"
-KLOE_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+#KLOE_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+KLOE_KEYFILE = "%s/.ssh/id_rsa_cdr"%CDR_HOME
 
 # Path to adler32 command on DAQ data server
 DAQ_ADLER32_CMD = "/home/daq/DAQ/tools/adler32"
@@ -33,8 +36,10 @@ DAQ_ADLER32_CMD = "/home/daq/DAQ/tools/adler32"
 #LNF2_SRM = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 LNF_SRM = "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
 LNF2_SRM ="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch"
-CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+#CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+#CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+CNAF_SRM = "davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape"
+CNAF2_SRM = "davs://xfer-archive.cr.cnaf.infn.it:8443/padme"
 
 # Timeout for gfal-ls and gfal-sum commands (in seconds)
 GFAL_TIMEOUT = 600

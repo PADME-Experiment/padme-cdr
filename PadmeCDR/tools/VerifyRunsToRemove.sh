@@ -29,15 +29,18 @@ if ! [[ -x $VERIFYRUN ]]; then
     usage
 fi
 
-# Define Storm access point to CNAF tape library and LNF storage system
-srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-#srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
-#srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
-srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
+# # Define Storm access point to CNAF tape library and LNF storage system
+# #srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+# srm_cnaf="davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape",
+# srm_cnaf2="davs://xfer-archive.cr.cnaf.infn.it:8443/padme",
+# #srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
+# #srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
+# srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
 
 srv_list=( "l1padme3" "l1padme4" "padmesrv2" )
 daq_user="daq"
-daq_keyfile="/home/${USER}/.ssh/id_rsa_cdr"
+#daq_keyfile="/home/${USER}/.ssh/id_rsa_cdr"
+daq_keyfile="${HOME}/.ssh/id_rsa_cdr"
 daq_path="/data/DAQ"
 dst_site="CNAF"
 year="$( date +%Y )"
@@ -56,8 +59,8 @@ while getopts ":D:y:h" o; do
     esac
 done
 
-if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "LNF" ]] && [[ $dst_site != "KLOE" ]]; then
-    echo "ERROR - Destination site can only be CNAF, LNF or KLOE"
+if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "CNAF2" ]] && [[ $dst_site != "LNF" ]] && [[ $dst_site != "KLOE" ]]; then
+    echo "ERROR - Destination site can only be CNAF, CNAF2, LNF or KLOE"
     exit 2
 fi
 

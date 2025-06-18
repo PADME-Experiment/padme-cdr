@@ -20,6 +20,7 @@ SITE_LIST = [ "LNF", "LNF2", "CNAF", "CNAF2", "KLOE", "DAQ", "LOCAL" ]
 
 # User running CDR
 CDR_USER = os.environ['USER']
+CDR_HOME = os.environ['HOME']
 
 # Look for local checksum command in same dir as current script
 LOCAL_ADLER32_CMD = "%s/adler32.py"%SCRIPT_DIR
@@ -27,7 +28,8 @@ if not os.access(LOCAL_ADLER32_CMD,os.X_OK): LOCAL_ADLER32_CMD = ""
 
 # Access information for DAQ data server
 DAQ_USER = "daq"
-DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+#DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+DAQ_KEYFILE = "%s/.ssh/id_rsa_cdr"%CDR_HOME
 DAQ_SERVERS = [ "l1padme3", "l1padme4" ]
 DAQ_PATH = "/data/DAQ"
 DAQ_ADLER32_CMD = "/home/daq/DAQ/tools/adler32"
@@ -45,8 +47,10 @@ SRM = {
 #    "LNF2"  : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch",
     "LNF"   : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org",
     "LNF2"  : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch",
-    "CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
-    "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+    #"CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
+    #"CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+    "CNAF"  : "davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape",
+    "CNAF2" : "davs://xfer-archive.cr.cnaf.infn.it:8443/padme"
 }
 
 # Special space token option needed to write data to some sites (currently only LNF2)

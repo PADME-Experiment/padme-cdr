@@ -21,13 +21,15 @@ TRANSFERFILE = "%s/TransferFile.py"%SCRIPT_DIR
 
 # User running CDR
 CDR_USER = os.environ['USER']
+CDR_HOME = os.environ['HOME']
 
 # List of available sites
 SITE_LIST = [ "LNF", "LNF2", "CNAF", "CNAF2", "LOCAL", "DAQ", "KLOE" ]
 
 # Access information for DAQ data server
 DAQ_USER = "daq"
-DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+#DAQ_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
+DAQ_KEYFILE = "%s/.ssh/id_rsa_cdr"%CDR_HOME
 DAQ_SERVERS = [ "l1padme3", "l1padme4" ]
 
 # SRM addresses
@@ -36,8 +38,10 @@ SRM = {
     #"LNF2"  : "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch",
     "LNF"   : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org",
     "LNF2"  : "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch",
-    "CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
-    "CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+    #"CNAF"  : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape",
+    #"CNAF2" : "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+    "CNAF"  : "davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape",
+    "CNAF2" : "davs://xfer-archive.cr.cnaf.infn.it:8443/padme"
 }
 
 # Default source and destination
