@@ -2,7 +2,7 @@
 
 # Prepare a variable with usage guidelines
 read -r -d '' usage <<EOF
-Usage: $0 -m month [-S site] [-D site] [-j jobs] [-v] [-h]
+Usage: $0 -m month [-T data_type] [-S site] [-D site] [-j jobs] [-v] [-h]
 -m month     Define month to verify in the format yyyymm (e.g. 202010 for october 2020)
 -T data_type Define type of data to check (DAQ,MM,TMM)"
 -S site      Define comparison source site. Available sites: CNAF CNAF2 LNF LNF2
