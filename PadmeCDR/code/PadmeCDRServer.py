@@ -470,10 +470,10 @@ class PadmeCDRServer:
         cmd = "gfal-copy -t 3600 -T 3600 -p -D\"SFTP PLUGIN:USER=%s\" -D\"SFTP PLUGIN:PRIVKEY=%s\" %s/%s/%s %s/%s/%s"%(self.daq_user,self.daq_keyfile,self.daq_sftp,self.data_dir,rawfile,self.site_srm[dst_site],self.data_dir,rawfile)
         (rc,out,err) = self.execute_command(cmd)
         #(rc,out,err) = (0,"All is good","")
-        if rc == 0:
-            print out,
-        else:
+        print out,
+        if rc != 0:
             print "- File %s - ***ERROR*** gfal-copy returned error %d while copying from DAQ to %s"%(rawfile,rc,dst_site)
+            print out,
             print err,
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s copy\n"%(self.now_str(),rawfile))

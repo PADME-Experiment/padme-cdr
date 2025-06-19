@@ -3,11 +3,12 @@
 # Prepare a variable with usage guidelines
 read -r -d '' usage <<EOF
 Usage: $0 -m month [-S site] [-D site] [-j jobs] [-v] [-h]
--m month  Define month to verify in the format yyyymm (e.g. 202010 for october 2020)
--S site   Define comparison source site. Available sites: CNAF CNAF2 LNF LNF2
--D site   Define comparison destination site. Available sites: CNAF CNAF2 LNF LNF2 KLOE
--v        Enable verbose mode (i.e. show list of missing files)
--h        Show this help message and exit
+-m month     Define month to verify in the format yyyymm (e.g. 202010 for october 2020)
+-T data_type Define type of data to check (DAQ,MM,TMM)"
+-S site      Define comparison source site. Available sites: CNAF CNAF2 LNF LNF2
+-D site      Define comparison destination site. Available sites: CNAF CNAF2 LNF LNF2 KLOE
+-v           Enable verbose mode (i.e. show list of missing files)
+-h           Show this help message and exit
 Default comparison: verify CNAF vs LNF
 EOF
 
@@ -34,15 +35,11 @@ if ! [[ -x $VERIFYRUN ]]; then
 fi
 
 # Define Storm access point to CNAF tape library and LNF/LNF2 storage systems
-srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-srm_cnaf2="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
-#srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
-#srm_lnf2="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org_scratch"
-#srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
-#srm_lnf2="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
+srm_cnaf="davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape"
+srm_cnaf2="davs://xfer-archive.cr.cnaf.infn.it:8443/padme"
 srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
 srm_lnf2="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch"
-
+data_type="DAQ"
 src_site="CNAF"
 dst_site="LNF"
 month=""
@@ -52,6 +49,9 @@ while getopts ":m:S:D:j:vh" o; do
     case "${o}" in
         m)
             month=${OPTARG}
+            ;;
+        T)
+            data_type=${OPTARG}
             ;;
         S)
             src_site=${OPTARG}
@@ -110,8 +110,19 @@ if [[ $src_site = $dst_site ]]; then
     exit 1
 fi
 
+if [[ $data_type == "DAQ" ]]; then
+    data_dir="rawdata"
+elif [[ $data_type == "MM" ]]; then
+    data_dir="mmdata"
+elif [[ $data_type == "TMM" ]]; then
+    data_dir="tmmdata"
+else
+    echo "ERROR - Data type only be DAQ, MM or TMM"
+    exit 2
+fi
+
 run_list=()
-for run in $(gfal-ls $src_uri/daq/$year/rawdata | grep _${month}[0-9][0-9]_ | sort)
+for run in $(gfal-ls $src_uri/daq/$year/$data_dir | grep _${month}[0-9][0-9]_ | sort)
 do
     run_list+=("$run")
 done
@@ -119,7 +130,7 @@ if [ ${#run_list[@]} -eq 0 ]; then
     echo "WARNING - No runs found on source site ${src_site} for month ${month}."
 else
     if [[ $dst_site != "KLOE" ]]; then
-	parallel $VERIFYRUN -R {} -S $src_site -D $dst_site $verbose ::: "${run_list[@]}"
+	parallel $VERIFYRUN -R {} -T $data_type -S $src_site -D $dst_site $verbose ::: "${run_list[@]}"
     else
 	# KLOE site has problems with multiple ssh accesses: do not use parallel
 	for run in "${run_list[@]}"

@@ -2,7 +2,9 @@
 
 usage() {
     year="$( date +%Y )"
-    echo "Usage: $0 [-D dst_site] [-y year] [-h]" 1>&2
+    echo "Usage: $0 [-T data_type] [-D dst_site] [-y year] [-h]" 1>&2
+    echo "-T data_type    Define type of data to check (DAQ,MM,TMM)"
+    echo "-D dst_site     Define site to verify (LNF,CNAF,CNAF2,KLOE)"
     echo "Default: compare content of year $year on DAQ servers with CNAF" 1>&2
     exit 1
 }
@@ -29,24 +31,22 @@ if ! [[ -x $VERIFYRUN ]]; then
     usage
 fi
 
-# # Define Storm access point to CNAF tape library and LNF storage system
-# #srm_cnaf="srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-# srm_cnaf="davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape",
-# srm_cnaf2="davs://xfer-archive.cr.cnaf.infn.it:8443/padme",
-# #srm_lnf="srm://atlasse.lnf.infn.it:8446/srm/managerv2?SFN=/dpm/lnf.infn.it/home/vo.padme.org"
-# #srm_lnf="davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org"
-# srm_lnf="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
-
-srv_list=( "l1padme3" "l1padme4" "padmesrv2" )
+daq_srv_list=( "l1padme3" "l1padme4" "padmesrv2" )
+mm_srv="l0padme2"
+tmm_srv="192.168.60.10"
 daq_user="daq"
 #daq_keyfile="/home/${USER}/.ssh/id_rsa_cdr"
 daq_keyfile="${HOME}/.ssh/id_rsa_cdr"
 daq_path="/data/DAQ"
+data_type="DAQ"
 dst_site="CNAF"
 year="$( date +%Y )"
 
-while getopts ":D:y:h" o; do
+while getopts ":T:D:y:h" o; do
     case "${o}" in
+        T)
+            data_type=${OPTARG}
+            ;;
         D)
             dst_site=${OPTARG}
             ;;
@@ -65,8 +65,21 @@ if [[ $dst_site != "CNAF" ]] && [[ $dst_site != "CNAF2" ]] && [[ $dst_site != "L
 fi
 
 # Get list of runs on DAQ servers for given year and verify each of them
-for srv in "${srv_list[@]}"; do
-    for run in $( ssh -n -i $daq_keyfile -l $daq_user $srv ls ${daq_path}/${year}/rawdata ); do
-	$VERIFYRUN -R $run -S DAQ -s $srv -D $dst_site
+if [[ $data_type == "DAQ" ]]; then
+    for srv in "${daq_srv_list[@]}"; do
+	for run in $( ssh -n -i $daq_keyfile -l $daq_user $srv ls ${daq_path}/${year}/rawdata | grep run_ ); do
+	    $VERIFYRUN -R $run -T DAQ -S DAQ -s $srv -D $dst_site
+	done
     done
-done
+elif [[ $data_type == "MM" ]]; then
+    for run in $( ssh -n -i $daq_keyfile -l $daq_user $mm_srv ls ${daq_path}/${year}/mmdata | grep run_ ); do
+	$VERIFYRUN -R $run -T MM -S DAQ -s $mm_srv -D $dst_site
+    done
+elif [[ $data_type == "TMM" ]]; then
+    for run in $( ssh -n -i $daq_keyfile -l $daq_user $tmm_srv ls ${daq_path}/${year}/tmmdata | grep run_ ); do
+	$VERIFYRUN -R $run -T TMM -S DAQ -s $tmm_srv -D $dst_site
+    done
+else
+    echo "ERROR - Data type only be DAQ, MM or TMM"
+    exit 2
+fi
