@@ -101,7 +101,7 @@ def get_file_list_daq(run,year,ddir,server):
     missing = False
     run_dir = "/data/DAQ/%s/%s/%s"%(year,ddir,run)
     daq_ssh = "ssh -n -i %s -l %s %s"%(DAQ_KEYFILE,DAQ_USER,server)
-    cmd = "%s \'( cd %s; ls -l )\'"%(daq_ssh,run_dir)
+    cmd = "%s \'( cd %s; ls -l *.root )\'"%(daq_ssh,run_dir)
     for line in run_command(cmd):
         if ( re.match("^ls: cannot access ",line) ):
             missing = True
@@ -120,7 +120,7 @@ def get_file_list_local(run,year,loc_dir):
     file_size = {}
     missing = False
     run_dir = "%s/%s"%(loc_dir,run)
-    cmd = "/bin/bash -c \'( cd %s; ls -l )\'"%run_dir
+    cmd = "/bin/bash -c \'( cd %s; ls -l *.root )\'"%run_dir
     for line in run_command(cmd):
         if ( re.match("^ls: cannot access ",line) ):
             missing = True
