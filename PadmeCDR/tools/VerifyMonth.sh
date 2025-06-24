@@ -45,7 +45,7 @@ dst_site="LNF"
 month=""
 jobs=20
 verbose=""
-while getopts ":m:S:D:j:vh" o; do
+while getopts ":m:T:S:D:j:vh" o; do
     case "${o}" in
         m)
             month=${OPTARG}
