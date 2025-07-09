@@ -67,16 +67,16 @@ fi
 # Get list of runs on DAQ servers for given year and verify each of them
 if [[ $data_type == "DAQ" ]]; then
     for srv in "${daq_srv_list[@]}"; do
-	for run in $( ssh -n -i $daq_keyfile -l $daq_user $srv ls ${daq_path}/${year}/rawdata | grep run_ ); do
+	for run in $( ssh -n -i $daq_keyfile -l $daq_user $srv ls ${daq_path}/${year}/rawdata | grep ^run_ | grep -v .root ); do
 	    $VERIFYRUN -R $run -T DAQ -S DAQ -s $srv -D $dst_site
 	done
     done
 elif [[ $data_type == "MM" ]]; then
-    for run in $( ssh -n -i $daq_keyfile -l $daq_user $mm_srv ls ${daq_path}/${year}/mmdata | grep run_ ); do
+    for run in $( ssh -n -i $daq_keyfile -l $daq_user $mm_srv ls ${daq_path}/${year}/mmdata | grep ^run_ | grep -v .root ); do
 	$VERIFYRUN -R $run -T MM -S DAQ -s $mm_srv -D $dst_site
     done
 elif [[ $data_type == "TMM" ]]; then
-    for run in $( ssh -n -i $daq_keyfile -l $daq_user $tmm_srv ls ${daq_path}/${year}/tmmdata | grep run_ ); do
+    for run in $( ssh -n -i $daq_keyfile -l $daq_user $tmm_srv ls ${daq_path}/${year}/tmmdata | grep ^run_ | grep -v .root ); do
 	$VERIFYRUN -R $run -T TMM -S DAQ -s $tmm_srv -D $dst_site
     done
 else
