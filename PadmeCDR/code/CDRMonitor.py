@@ -33,6 +33,10 @@ long_proxy_file = "%s/run/long_proxy"%cdr_dir
 # Define time in sec to pause between checks
 monitor_pause = 300
 
+# Enable/disable creation of long term timelines
+#long_timelines = True
+long_timelines = False
+
 # Access information for monitor server
 monitor_server = "l0padme3"
 monitor_user = "monitor"
@@ -108,26 +112,37 @@ disk_list = [
         "Alarm": 90
     },
     {
-        "Name": "data05",
-        "String": "Tier2 data05",
+        "Name": "data9Vd1",
+        "String": "Tier2 data9Vd1",
         "Host": "localhost",
-        "Area": "/data05",
+        "Area": "/data9Vd1",
         "User": "",
         "Color": "e74c3c",
         "Mode": "lines",
         "Warn": 65,
         "Alarm": 90
-    },
-    {
-        "Name": "padmesrv2",
-        "String": "padmesrv2",
-        "Host": "padmesrv2",
-        "Area": "/mnt/data01",
-        "User": "daq",
-        "Color": "ffff00",
-        "Mode": "lines",
-        "Warn": 65,
-        "Alarm": 90
+    #},
+    #{
+    #    "Name": "data05",
+    #    "String": "Tier2 data05",
+    #    "Host": "localhost",
+    #    "Area": "/data05",
+    #    "User": "",
+    #    "Color": "e74c3c",
+    #    "Mode": "lines",
+    #    "Warn": 65,
+    #    "Alarm": 90
+    #},
+    #{
+    #    "Name": "padmesrv2",
+    #    "String": "padmesrv2",
+    #    "Host": "padmesrv2",
+    #    "Area": "/mnt/data01",
+    #    "User": "daq",
+    #    "Color": "ffff00",
+    #    "Mode": "lines",
+    #    "Warn": 65,
+    #    "Alarm": 90
     }
 ]
 for i in range(len(disk_list)):
@@ -138,7 +153,8 @@ tape_list = [
         "Name": "lnfdisk",
         "String": "LNF Disk",
         #"Space": 280.,
-        "Space": 397.,
+        #"Space": 397.,
+        "Space": 667.,
         "Color": "ff0000",
         "Mode": "lines",
         "Warn": 90,
@@ -147,7 +163,7 @@ tape_list = [
     {
         "Name": "lnf2disk",
         "String": "LNF Scratch",
-        "Space": 100.,
+        "Space": 110.,
         "Color": "0000ff",
         "Mode": "lines",
         "Warn": 90,
@@ -170,26 +186,26 @@ tape_list = [
         "Mode": "lines",
         "Warn": 65,
         "Alarm": 90
-    },
-    {
-        "Name": "kloetape",
-        "String": "KLOE Tape",
-        #"Space": 600.,
-        "Space": 900.,
-        "Color": "ff00ff",
-        "Mode": "lines",
-        "Warn": 90,
-        "Alarm": 100
-    },
-    {
-        "Name": "kloedisk",
-        "String": "KLOE Disk",
-        "Space": 18.,
-        "Color": "e74c3c",
-        "Mode": "lines",
-        "Warn": 65,
-        "Alarm": 90
- }
+    #},
+    #{
+    #    "Name": "kloetape",
+    #    "String": "KLOE Tape",
+    #    #"Space": 600.,
+    #    "Space": 900.,
+    #    "Color": "ff00ff",
+    #    "Mode": "lines",
+    #    "Warn": 90,
+    #    "Alarm": 100
+    #},
+    #{
+    #    "Name": "kloedisk",
+    #    "String": "KLOE Disk",
+    #    "Space": 18.,
+    #    "Color": "e74c3c",
+    #    "Mode": "lines",
+    #    "Warn": 65,
+    #    "Alarm": 90
+    }
 ]
 for i in range(len(tape_list)):
     tape_list[i]["Timeline"] = "%s/log/timeline_%s.log"%(cdr_dir,tape_list[i]["Name"])
@@ -246,17 +262,17 @@ for i in range(len(network_list)):
 
 # Source/destination sites for CDR transfer processes
 cdr_transfer = [
-    ["CDRMonitor",  "",    "ON" ],
-    ["DAQ-l1padme3","CNAF","ON" ],
-    ["DAQ-l1padme4","CNAF","ON" ],
-    ["DAQ-padmesrv2","CNAF","ON" ],
-    ["CNAF",        "LNF", "OFF"],
-    ["CNAF",        "KLOE","ON" ],
-    ["DAQ-l1padme3","LNF", "ON" ],
-    ["DAQ-l1padme4","LNF", "ON" ],
-    ["DAQ-padmesrv2","LNF", "ON" ],
-    ["LNF",         "CNAF","OFF"],
-    ["LNF",         "KLOE","OFF"]
+    ["CDRMonitor",   "",    "ON" ],
+    ["DAQ-l1padme3", "CNAF","ON" ],
+    ["DAQ-l1padme4", "CNAF","ON" ],
+    ["DAQ-padmesrv2","CNAF","OFF"],
+    ["CNAF",         "LNF", "OFF"],
+    ["CNAF",         "KLOE","OFF"],
+    ["DAQ-l1padme3", "LNF", "ON" ],
+    ["DAQ-l1padme4", "LNF", "ON" ],
+    ["DAQ-padmesrv2","LNF", "OFF"],
+    ["LNF",          "CNAF","OFF"],
+    ["LNF",          "KLOE","OFF"]
 ]
 
 # Keyfile to use for data servers access. All data servers MUST accept it
@@ -453,18 +469,22 @@ def get_kloedisk_info():
 
 def get_lnfdisk_info():
     disk_use = 0.
-    cmd = "gfal-ls -ld %s"%lnf_uri
+    #cmd = "gfal-ls -ld %s"%lnf_uri
+    cmd = "gfal-ls -l davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home"
     for line in run_command(cmd):
-        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
+        #rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
+        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*\s+vo.padme.org$",line.strip())
         if rc:
             disk_use = float(rc.group(1))/1024./1024./1024./1024.
     return disk_use
 
 def get_lnf2disk_info():
     disk_use = 0.
-    cmd = "gfal-ls -ld %s"%lnf2_uri
+    #cmd = "gfal-ls -ld %s"%lnf2_uri
+    cmd = "gfal-ls -l davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home"
     for line in run_command(cmd):
-        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
+        #rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*$",line)
+        rc = re.match("^\s*\S+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+.*\s+vo.padme.org_scratch$",line.strip())
         if rc:
             disk_use = float(rc.group(1))/1024./1024./1024./1024.
     return disk_use
@@ -773,32 +793,34 @@ def start_monitor():
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_DAQ_timeline\n")
-        mh.write("PLOTNAME PADME CDR - DAQ Servers - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y Occupation(%)\n")
-        mh.write("RANGE_Y 0. 100.\n")
-        (data,legend,color,mode) = get_formatted_list(disk_list,"PERCENT","FULL")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_DAQ_timeline\n")
+            mh.write("PLOTNAME PADME CDR - DAQ Servers - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y Occupation(%)\n")
+            mh.write("RANGE_Y 0. 100.\n")
+            (data,legend,color,mode) = get_formatted_list(disk_list,"PERCENT","FULL")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_Tape_timeline\n")
-        mh.write("PLOTNAME PADME CDR - Storage - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y Occupation(TB)\n")
-        (data,legend,color,mode) = get_formatted_list(tape_list,"USED","FULL")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_Tape_timeline\n")
+            mh.write("PLOTNAME PADME CDR - Storage - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y Occupation(TB)\n")
+            (data,legend,color,mode) = get_formatted_list(tape_list,"USED","FULL")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
@@ -885,32 +907,34 @@ def start_monitor():
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_DAQ_timeline_YEAR\n")
-        mh.write("PLOTNAME PADME CDR - DAQ Servers - Yearly - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y Occupation(%)\n")
-        mh.write("RANGE_Y 0. 100.\n")
-        (data,legend,color,mode) = get_formatted_list(disk_list,"PERCENT","YEAR")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_DAQ_timeline_YEAR\n")
+            mh.write("PLOTNAME PADME CDR - DAQ Servers - Yearly - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y Occupation(%)\n")
+            mh.write("RANGE_Y 0. 100.\n")
+            (data,legend,color,mode) = get_formatted_list(disk_list,"PERCENT","YEAR")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_Tape_timeline_YEAR\n")
-        mh.write("PLOTNAME PADME CDR - Storage - Yearly - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y Occupation(TB)\n")
-        (data,legend,color,mode) = get_formatted_list(tape_list,"USED","YEAR")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_Tape_timeline_YEAR\n")
+            mh.write("PLOTNAME PADME CDR - Storage - Yearly - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y Occupation(TB)\n")
+            (data,legend,color,mode) = get_formatted_list(tape_list,"USED","YEAR")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
@@ -983,31 +1007,33 @@ def start_monitor():
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_RX_timeline\n")
-        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y MiB/s\n")
-        (data,legend,color,mode) = get_formatted_list(network_list,"RX","FULL")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_RX_timeline\n")
+            mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y MiB/s\n")
+            (data,legend,color,mode) = get_formatted_list(network_list,"RX","FULL")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_TX_timeline\n")
-        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y MiB/s\n")
-        (data,legend,color,mode) = get_formatted_list(network_list,"TX","FULL")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_TX_timeline\n")
+            mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y MiB/s\n")
+            (data,legend,color,mode) = get_formatted_list(network_list,"TX","FULL")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
@@ -1091,31 +1117,33 @@ def start_monitor():
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_RX_timeline_YEAR\n")
-        mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y MiB/s\n")
-        (data,legend,color,mode) = get_formatted_list(network_list,"RX","YEAR")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_RX_timeline_YEAR\n")
+            mh.write("PLOTNAME PADME CDR - RX Traffic - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y MiB/s\n")
+            (data,legend,color,mode) = get_formatted_list(network_list,"RX","YEAR")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
-        mh.write("PLOTID CDR_TX_timeline_YEAR\n")
-        mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
-        mh.write("PLOTTYPE timeline\n")
-        mh.write("TIME_FORMAT extended\n")
-        mh.write("TITLE_X Time\n")
-        mh.write("TITLE_Y MiB/s\n")
-        (data,legend,color,mode) = get_formatted_list(network_list,"TX","YEAR")
-        mh.write(mode)
-        mh.write(color)
-        mh.write(legend)
-        mh.write(data)
+        if long_timelines:
+            mh.write("PLOTID CDR_TX_timeline_YEAR\n")
+            mh.write("PLOTNAME PADME CDR - TX Traffic - %s UTC\n"%now_str())
+            mh.write("PLOTTYPE timeline\n")
+            mh.write("TIME_FORMAT extended\n")
+            mh.write("TITLE_X Time\n")
+            mh.write("TITLE_Y MiB/s\n")
+            (data,legend,color,mode) = get_formatted_list(network_list,"TX","YEAR")
+            mh.write(mode)
+            mh.write(color)
+            mh.write(legend)
+            mh.write(data)
 
         mh.write("\n")
 
