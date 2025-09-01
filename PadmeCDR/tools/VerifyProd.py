@@ -30,8 +30,10 @@ KLOE_KEYFILE = "/home/%s/.ssh/id_rsa_cdr"%CDR_USER
 #LNF2_SRM = "davs://atlasse.lnf.infn.it:443/dpm/lnf.infn.it/home/vo.padme.org_scratch"
 LNF_SRM = "root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org"
 LNF2_SRM ="root://atlasse.lnf.infn.it//dpm/lnf.infn.it/home/vo.padme.org_scratch"
-CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
-CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+#CNAF_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padmeTape"
+#CNAF2_SRM = "srm://storm-fe-archive.cr.cnaf.infn.it:8444/srm/managerv2?SFN=/padme"
+CNAF_SRM = "davs://xfer-archive.cr.cnaf.infn.it:8443/padmeTape"
+CNAF2_SRM = "davs://xfer-archive.cr.cnaf.infn.it:8443/padme"
 
 # Timeout for gfal-ls and gfal-sum commands (in seconds)
 GFAL_TIMEOUT = 600
