@@ -473,7 +473,12 @@ class PadmeCDRServer:
         print out,
         if rc != 0:
             print "- File %s - ***ERROR*** gfal-copy returned error %d while copying from DAQ to %s"%(rawfile,rc,dst_site)
-            print err,
+            try:
+                print err,
+            except NameError:
+                print "=== Error message gives a NameError"
+            except:
+                print "=== Could not print error message"
             with open(self.transfer_error_list_file,"a") as telf:
                 telf.write("%s - %s copy\n"%(self.now_str(),rawfile))
             cmd = "gfal-rm %s/%s/%s"%(self.site_srm[dst_site],self.data_dir,rawfile)
