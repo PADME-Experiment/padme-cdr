@@ -262,17 +262,25 @@ for i in range(len(network_list)):
 
 # Source/destination sites for CDR transfer processes
 cdr_transfer = [
-    ["CDRMonitor",   "",    "ON" ],
-    ["DAQ-l1padme3", "CNAF","ON" ],
-    ["DAQ-l1padme4", "CNAF","ON" ],
-    ["DAQ-padmesrv2","CNAF","OFF"],
-    ["CNAF",         "LNF", "OFF"],
-    ["CNAF",         "KLOE","OFF"],
-    ["DAQ-l1padme3", "LNF", "ON" ],
-    ["DAQ-l1padme4", "LNF", "ON" ],
-    ["DAQ-padmesrv2","LNF", "OFF"],
-    ["LNF",          "CNAF","OFF"],
-    ["LNF",          "KLOE","OFF"]
+    ["CDRMonitor",            "",    "ON" ],
+    ["DAQ-DAQ-l1padme3",      "CNAF","ON" ],
+    ["DAQ-DAQ-l1padme4",      "CNAF","ON" ],
+    ["MM-DAQ-l0padme2",       "CNAF","ON" ],
+    ["TMM-DAQ-192.168.60.10", "CNAF","ON" ],
+    ["DAQ-DAQ-padmesrv2",     "CNAF","OFF"],
+    ["DAQ-CNAF",              "LNF", "OFF"],
+    ["MM-CNAF",               "LNF", "OFF"],
+    ["TMM-CNAF",              "LNF", "OFF"],
+    #["CNAF",                  "KLOE","OFF"],
+    ["DAQ-DAQ-l1padme3",      "LNF", "ON" ],
+    ["DAQ-DAQ-l1padme4",      "LNF", "ON" ],
+    ["MM-DAQ-l0padme2",       "LNF", "ON" ],
+    ["TMM-DAQ-192.168.60.10", "LNF", "ON" ],
+    ["DAQ-DAQ-padmesrv2",     "LNF", "OFF"],
+    ["DAQ-LNF",               "CNAF","OFF"],
+    ["MM-LNF",                "CNAF","OFF"],
+    ["TMM-LNF",               "CNAF","OFF"]
+    #["LNF",                   "KLOE","OFF"]
 ]
 
 # Keyfile to use for data servers access. All data servers MUST accept it
@@ -363,17 +371,23 @@ def get_transfer_status(src,dst):
         proc_name = src
         src_1 = ""
         src_2 = ""
-        dst_1 = ""
     else:
+        # This is a transfer process
         proc_name = "PadmeCDR"
-        r = re.match("^DAQ-(\S+)$",src)
+        # Get data type (DAQ, MM, TMM) from source
+        r = re.match("^([^-]+)-(\S+)$",src)
         if r:
-            src_1 = "-S DAQ"
-            src_2 = "-s %s"%r.group(1)
+            data_type = r.group(1)
+            ssrc = r.group(2)
         else:
-            src_1 = "-S %s"%src
+            return ("OFF",-1,"")
+        r = re.match("^DAQ-(\S+)$",ssrc)
+        if r:
+            src_1 = "DAQ"
+            src_2 = r.group(1)
+        else:
+            src_1 = ssrc
             src_2 = ""
-        dst_1 = "-D %s"%dst
     for proc in psutil.process_iter():
         try:
             p_string = " ".join(proc.cmdline())
@@ -381,9 +395,10 @@ def get_transfer_status(src,dst):
                 (src_1 == "") and re.match("^.*%s.*$"%proc_name,p_string)
             ) or (
                 re.match("^.*%s .*$"%proc_name,p_string) and
-                re.match("^.* %s.*$"%src_1,p_string) and
-                ( (src_2 == "") or re.match("^.* %s.*$"%src_2,p_string) ) and
-                re.match("^.* %s.*$"%dst_1,p_string)
+                re.match("^.*-T\s+%s.*$"%data_type,p_string) and
+                re.match("^.*-S\s+%s.*$"%src_1,p_string) and
+                ( (src_2 == "") or re.match("^.*-s\s+%s.*$"%src_2,p_string) ) and
+                re.match("^.*-D\s+%s.*$"%dst,p_string)
             ):
                 return ("ON",proc.pid,proc.username())
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
